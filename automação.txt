@@ -1,0 +1,23 @@
+appium --base-path /wd/hub --port 4723
+
+
+{
+  "appium:platformName": "Android",
+  "appium:deviceName": "Android",
+  "appium:automationName": "UiAutomator2",
+  "appium:appPackage": "com.whatsapp",
+  "appium:appActivity": ".main",
+  "appium:noReset": true
+}
+
+
+abrir whats app
+
+elemento_id 00000000-0000-003a-ffff-ffff0000008b
+
+Concordar e continuar 00000000-0000-0038-ffff-ffff00000044
+
+Recarga Facil\nTelefone [11960615393] nao Autorizado\n
+
+
+Recebida : 29744, <#> Codigo do WhatsApp: 520-415\nNao compartilhe este codigo\n4sgLq1p5sV6 12:31 
