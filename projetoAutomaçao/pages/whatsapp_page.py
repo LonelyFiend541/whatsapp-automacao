@@ -69,9 +69,15 @@ class WhatsAppPage:
         botao = self.driver.find_element(By.ID, "com.whatsapp:id/registration_submit")
         botao.click()
 
-        confirmar = esperar_elemento_visivel(self.driver, (By.ID, "android:id/button1"))
-        confirmar.click()
-        time.sleep(0.5)
+        try:
+            confirmar = esperar_elemento_visivel(self.driver, (By.ID, "android:id/button1"))
+            confirmar.click()
+            time.sleep(0.5)
+
+        except TimeoutException:
+            print(f"[TIMEOUT] Elemento {locator} não encontrado após {timeout}s.")
+            print('foi nao meu bom')
+            pass
 
 
 
@@ -85,6 +91,7 @@ class WhatsAppPage:
 
         except TimeoutException:
             print(f"[TIMEOUT] Elemento {locator} não encontrado após {timeout}s.")
+            pass
 
         except WebDriverException as e:
             print(f"[WEBDRIVER ERROR] Falha ao procurar {locator}. Erro: {e}")
@@ -102,62 +109,12 @@ class WhatsAppPage:
                                                        '(//android.widget.RadioButton[@resource-id="com.whatsapp:id/reg_method_checkbox"])[2]')).click()
                 esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/continue_button')).click()
 
-            def abrirAppMensagens(self):
-                esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input"))
-                self.driver.activate_app('com.samsung.android.messaging')
-
-            def pegarCodigoSms(self):
-                # Localiza o elemento que contém a mensagem com o código de verificação
-                esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                       '(//android.widget.LinearLayout[@resource-id="com.samsung.android.messaging:id/card_view_sub_layout"])[1]')).click()
-
-                # Busca pela mensagem que contém o código de verificação
-                esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                       "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]"))
-                mensagens = self.driver.find_elements(By.XPATH,
-                                                      "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]")
-                # Se houver mensagens que correspondem ao critério
-
-            if mensagens:
-                # Pegue a última mensagem que contém "Código do WhatsApp"
-                ultima_mensagem = mensagens[-1]
-
-                # Extraímos o texto ou o content-desc dessa última mensagem
-                codigoCompleto = ultima_mensagem.get_attribute('content-desc')
-
-                padrao = r'(\d+)-(\d+)'
-
-                resultado = re.search(padrao, codigoCompleto)
-
-                codigo = resultado.group(1) + resultado.group(2)
-
-                return codigo
-
-            def voltarWhatsapp(self):
-                self.driver.activate_app("com.whatsapp")
-                campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input"))
-                campo.click()
-
-            def inserir_codigo_sms(self, codigo):
-                campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input"))
-                campo.send_keys(codigo)
-
-            def concluir_perfil(self):
-                esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/submit")).click()
-                esperar_elemento_visivel(self.driver,
-                                         (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
-                time.sleep(1)
-                esperar_elemento_visivel(self.driver,
-                                         (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
-                time.sleep(1)
-                esperar_elemento_visivel(self.driver,
-                                         (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
-                esperar_elemento_visivel(self.driver, (By.ID, "android:id/button2")).click()
-
-                campo_nome = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/registration_name"))
-                campo_nome.send_keys("Call Center")
-                botao = self.driver.find_element(By.ID, "com.whatsapp:id/register_name_accept")
-                botao.click()
+                self.abrirAppMensagens()
+                # whatsapp.pegarCodigoSms()
+                codigo = self.pegarCodigoSms()
+                self.voltarWhatsapp()
+                self.inserir_codigo_sms(codigo)
+                self.concluir_perfil()
 
 
 
@@ -177,6 +134,7 @@ class WhatsAppPage:
             esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button')).click()
 
         except:
+            print('nao foi ein')
             pass
 
 

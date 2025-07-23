@@ -19,7 +19,7 @@ def test_registrar_novo_numero():
     whatsapp.inserir_numero(numero)
     whatsapp.verificarAnal()
     whatsapp.abrirAppMensagens()
-    whatsapp.pegarCodigoSms()
+    #whatsapp.pegarCodigoSms()
     codigo = whatsapp.pegarCodigoSms()
     whatsapp.voltarWhatsapp()
     whatsapp.inserir_codigo_sms(codigo)
