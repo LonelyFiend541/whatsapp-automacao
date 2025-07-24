@@ -1,33 +1,54 @@
-from drivers.drivers_factory import criar_driver
-from pages.whatsapp_page import WhatsAppPage
+import unittest
+from drivers.drivers_factory import criar_driver, pegar_udid
+from pages.whatsapp_page import WhatsAppPage, ChipBanidoException, ChipEmAnaliseException
+
+
+
+class TestWhatsAppRegistro(unittest.TestCase):
+
+
+    def test_registrar_novo_numero(self):
+        try:
+            udid = pegar_udid()
+            driver = criar_driver(4723, udid[0])
+
+            whatsapp = WhatsAppPage(driver)
+
+            numero = whatsapp.pegarNumero(udid)
+            whatsapp.abrirWhatsapp()
+            whatsapp.selecionar_linguagem()
+            whatsapp.clicar_prosseguir()
+            whatsapp.inserir_numero(numero)
+            whatsapp.confirmarNumero()
+            whatsapp.verificarAnalise()
+            whatsapp.verificarChip()
+            whatsapp.abrirAppMensagens()
+            codigo = whatsapp.pegarCodigoSms()
+            whatsapp.voltarWhatsapp()
+            whatsapp.inserir_codigo_sms(codigo)
+            whatsapp.concluir_perfil()
+            whatsapp.aceitarPermissao()
+            whatsapp.colocarNome()
+            whatsapp.finalizarPerfil()
 
 
 
 
+        except ChipBanidoException as e:
+            print(f"⚠️ Teste encerrado: {e}")
+            self.skipTest("Número banido – teste ignorado.")
 
-def test_registrar_novo_numero():
+        except ChipEmAnaliseException as e:
+            print(f"⚠️ Teste encerrado: {e}")
+            self.skipTest("Número em análise – teste ignorado.")
 
-    driver = criar_driver(4723, "R9QN905LRDK")
+        except Exception as e:
 
-    whatsapp = WhatsAppPage(driver)
+            self.fail(f"❌ Erro inesperado: {e}")
 
-    #whatsapp.pegarNumero()
-    numero = whatsapp.pegarNumero()
-    whatsapp.abrirWhatsapp()
-    whatsapp.selecionar_linguagem()
-    whatsapp.clicar_prosseguir()
-    whatsapp.inserir_numero(numero)
-    whatsapp.verificarAnal()
-    whatsapp.abrirAppMensagens()
-    #whatsapp.pegarCodigoSms()
-    codigo = whatsapp.pegarCodigoSms()
-    whatsapp.voltarWhatsapp()
-    whatsapp.inserir_codigo_sms(codigo)
-    whatsapp.concluir_perfil()
+        finally:
+            driver.quit()
 
+    if __name__ == '__main__':
+        unittest.main()
 
-
-    # AQUI você colocaria o código automático recebido por SMS
-
-
-    #driver.quit()
