@@ -1,7 +1,7 @@
 import unittest
-from drivers.drivers_factory import criar_driver, pegar_udid
-from pages.whatsapp_page import WhatsAppPage, ChipBanidoException, ChipEmAnaliseException
-
+from until.waits import *
+from drivers.drivers_factory import *
+from pages.whatsapp_page import *
 
 
 class TestWhatsAppRegistro(unittest.TestCase):
@@ -20,13 +20,17 @@ class TestWhatsAppRegistro(unittest.TestCase):
             whatsapp.clicar_prosseguir()
             whatsapp.inserir_numero(numero)
             whatsapp.confirmarNumero()
-            whatsapp.verificarAnalise()
-            whatsapp.verificarChip()
-            whatsapp.abrirAppMensagens()
-            codigo = whatsapp.pegarCodigoSms()
-            whatsapp.voltarWhatsapp()
-            whatsapp.inserir_codigo_sms(codigo)
-            whatsapp.concluir_perfil()
+            executar_paralelo(
+                whatsapp.verificarBanido,
+                whatsapp.verificarAnalise,
+                whatsapp.pedirAnalise,
+                whatsapp.verificarChip
+            )
+            if whatsapp.abrirAppMensagens():
+                codigo = whatsapp.pegarCodigoSms()
+                whatsapp.voltarWhatsapp()
+                whatsapp.inserir_codigo_sms(codigo)
+                whatsapp.concluir_perfil()
             whatsapp.aceitarPermissao()
             whatsapp.colocarNome()
             whatsapp.finalizarPerfil()
@@ -46,9 +50,8 @@ class TestWhatsAppRegistro(unittest.TestCase):
 
             self.fail(f"❌ Erro inesperado: {e}")
 
-        finally:
-            driver.quit()
 
-    if __name__ == '__main__':
-        unittest.main()
+
+if __name__ == '__main__':
+    unittest.main()
 

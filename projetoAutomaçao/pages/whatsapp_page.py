@@ -1,22 +1,14 @@
 import re
 import subprocess
 import time
-from selenium.common.exceptions import TimeoutException
+from until.retries import retry
+from until.waits import *
 from selenium.webdriver.common.by import By
-
-from until.waits import esperar_elemento_visivel, verificar_elemento_visivel
-
-
-class WebDriverException(Exception):
-    pass
+from selenium.common.exceptions import TimeoutException
 
 
-class ChipBanidoException(Exception):
-    pass
 
 
-class ChipEmAnaliseException(Exception):
-    pass
 
 
 class WhatsAppPage:
@@ -24,6 +16,7 @@ class WhatsAppPage:
     def __init__(self, driver):
         self.driver = driver
 
+    @retry(max_tentativas=3, delay=1)
     def pegarNumero(self, udid):
         try:
             self.driver.press_keycode(3)
@@ -47,7 +40,7 @@ class WhatsAppPage:
 
         except Exception as e:
 
-            print(f"Erro ao selecionar linguagem: {e}")
+            print(f"Erro ao pegar numero: {e}")
 
             pass
 
@@ -94,42 +87,41 @@ class WhatsAppPage:
             print('Nao confirmou o numero')
             pass
 
-    def verificarAnalise(self):
-        time.sleep(5)
-        botao = ''
+    def verificarBanido(self):
         try:
-            if esperar_elemento_visivel(self.driver, (By.ID,
-                                                      'com.whatsapp:id/action_button')).text == 'REGISTRAR NOVO NÚMERO DE TELEFONE':
-                print('numero banido')
+            elemento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
+            if elemento and elemento.text == 'REGISTRAR NOVO NÚMERO DE TELEFONE':
+                print('Número banido')
                 raise ChipBanidoException("Número banido pelo WhatsApp")
-        except:
-            pass
+        except TimeoutException:
+            print("Não apareceu botão de banimento – ignorando.")
 
+    def pedirAnalise(self):
         try:
-            if esperar_elemento_visivel(self.driver,(By.ID, 'com.whatsapp:id/action_button')).text == "PEDIR ANÁLISE":
-                botao = esperar_elemento_visivel(self.driver, (By.ID,'com.whatsapp:id/action_button'))
-                botao.click()
-                esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button'))
-                analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/appeal_submitted_heading'))
-                print(analise.text)
+            elemento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
+            if elemento and elemento.text == "PEDIR ANÁLISE":
+                elemento.click()
+                esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button')).click()
+                time.sleep(0.5)
+                esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button')).click()
                 raise ChipEmAnaliseException("Chip em processo de análise")
+        except TimeoutException:
+            print("Não apareceu botão 'PEDIR ANÁLISE' – ignorando.")
 
-        except:
-            pass
-
+    def verificarAnalise(self):
         try:
-            if esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button')).text == 'VERIFICAR STATUS DA ANÁLISE':
-                esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button')).click()
+            elemento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
+            if elemento and elemento.text == 'VERIFICAR STATUS DA ANÁLISE':
+                elemento.click()
                 analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/appeal_submitted_heading'))
                 print(analise.text)
                 raise ChipEmAnaliseException("Chip já em análise")
-        except:
-            pass
-
+        except TimeoutException:
+            print("Não apareceu botão de status de análise – ignorando.")
 
     def verificarChip(self):
         try:
-            tipoderecebimento = esperar_elemento_visivel(self.driver,
+            tipoderecebimento = verificar_elemento_visivel(self.driver,
                                                          (By.ID, 'com.whatsapp:id/entire_content_holder'))
             if tipoderecebimento:
                 esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')).click()
@@ -148,15 +140,15 @@ class WhatsAppPage:
                     esperar_elemento_visivel(self.driver, (By.ID,
                                                            'com.android.permissioncontroller:id/permission_allow_button')).click()
                 except Exception as e:
-                    print(f"Erro ao selecionar linguagem: {e}")
+                    print(f"Erro ao verificar chip: {e}")
                     print('nao aceitou as condicoes')
                     pass
 
 
 
         except Exception as e:
-            print(f"Erro ao selecionar linguagem: {e}")
-            print('nao conectou')
+
+            print('Nao verificou o chip')
             pass
 
 
@@ -165,6 +157,7 @@ class WhatsAppPage:
             campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input"))
             self.driver.activate_app('com.samsung.android.messaging')
             print('abriu o app')
+            return True
         except:
             print('nao abriu o app de mensagem')
             pass
@@ -273,6 +266,7 @@ class WhatsAppPage:
         try:
             campo_nome = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/registration_name"))
             campo_nome.send_keys("Call Center")
+            print("colocou o nome")
         except Exception as e:
             print(f"Erro ao selecionar linguagem: {e}")
             print('colocou o nome')
@@ -283,6 +277,9 @@ class WhatsAppPage:
         try:
             self.driver.find_element(By.ID, "com.whatsapp:id/register_name_accept").click()
             print('concluiu')
+            if verificar_elemento_visivel(self.driver,(By.ID, 'com.whatsapp:id/secondary_button')):
+                verificar_elemento_visivel(self.driver,(By.ID, 'com.whatsapp:id/secondary_button')).click()
+            time.sleep(10)
         except Exception as e:
             print(f"Erro ao selecionar linguagem: {e}")
             print('parou no nome')

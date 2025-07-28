@@ -1,6 +1,8 @@
-from appium import webdriver
-from appium.options.android import UiAutomator2Options
 import subprocess
+from appium.options.android import UiAutomator2Options
+from appium import webdriver
+
+from until.retries import retry
 
 
 def pegar_udid():
@@ -11,7 +13,7 @@ def pegar_udid():
     print(udid)
     return udid
 
-
+@retry(max_tentativas=3, delay=1)
 def criar_driver(porta, udid):
     # Criando as opções para o Appium
     options = UiAutomator2Options()
