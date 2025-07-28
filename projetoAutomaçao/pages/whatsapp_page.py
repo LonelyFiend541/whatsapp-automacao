@@ -24,7 +24,7 @@ class WhatsAppPage:
             self.driver.activate_app('com.samsung.android.dialer')
             esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.dialer:id/dialpad_spacer_view")).click()
 
-            subprocess.run(f'adb -s {udid[0]} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
+            subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             esperar_elemento_visivel(self.driver,
                                      (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"), 20)
             campoNumero = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"))
