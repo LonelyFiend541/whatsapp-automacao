@@ -5,9 +5,7 @@ from appium.webdriver.appium_service import AppiumService
 from appium.options.android import UiAutomator2Options
 from appium import webdriver
 from concurrent.futures import ThreadPoolExecutor
-
-from pages.whatsapp_page import WhatsAppPage
-from until.waits import *  # ajuste o caminho se necessário
+from pages.whatsapp_page import *
 
 
 def pegar_udids():
@@ -44,7 +42,7 @@ def iniciar_appium(porta):
     raise RuntimeError(f"❌ Falha ao iniciar Appium na porta {porta}")
 
 
-def criar_driver(udid, porta):
+def criar_drivers(udid, porta):
     options = UiAutomator2Options()
     options.platform_name = "Android"
     options.device_name = udid
@@ -68,7 +66,7 @@ def iniciar_ambiente_para_todos():
     for udid in udids:
         porta = porta_livre()
         service = iniciar_appium(porta)
-        driver = criar_driver(udid, porta)
+        driver = criar_drivers(udid, porta)
         drivers_services.append((driver, service))
 
     return drivers_services
@@ -127,4 +125,4 @@ if __name__ == "__main__":
     for _, service in drivers_services:
         if service.is_running:
            print("🛑 Parando Appium...")
-    #        service.stop()
+           service.stop()

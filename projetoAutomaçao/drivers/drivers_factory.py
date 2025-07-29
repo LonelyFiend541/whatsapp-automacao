@@ -32,7 +32,7 @@ def criar_driver(porta, udid):
 
     # ⚠️ Corrigir endpoint se usar Appium 2.x com `--base-path /`
     driver = webdriver.Remote(
-        command_executor=f'http://localhost:{porta}',  # /wd/hub não é mais necessário com base-path '/'
+        command_executor=f'http://localhost:{porta}/wd/hub',  # /wd/hub não é mais necessário com base-path '/'
         options=options
     )
     return driver
@@ -48,11 +48,16 @@ def appium_server():
         print("✅ Appium já está rodando.")
     else:
         print("🟡 Iniciando Appium Server...")
-        appium_service.start(args=[
-            '--port', '4723',
-            '--base-path', '/',
-            '--use-drivers', 'uiautomator2'  # importante para Appium 2.x
-        ])
+        appium_service.start(
+            node=r"C:\Program Files\nodejs\node.exe",
+            npm=r"C:\Program Files\nodejs\npm.cmd",
+            main_script=r"C:\Users\user\AppData\Roaming\npm\node_modules\appium\build\lib\main.js",
+            args=[
+                '--port', '4723',
+                '--base-path', '/',
+                '--use-drivers', 'uiautomator2'
+            ]
+        )
 
         # ⏳ Aguarda até estar ativo
         for _ in range(10):

@@ -15,7 +15,7 @@ class TestWhatsAppRegistro(unittest.TestCase):
 
             whatsapp = WhatsAppPage(driver)
 
-            numero = whatsapp.pegarNumero(udid)
+            numero = whatsapp.pegarNumero(udid[0])
             whatsapp.abrirWhatsapp()
             whatsapp.selecionar_linguagem()
             whatsapp.clicar_prosseguir()
@@ -53,16 +53,16 @@ class TestWhatsAppRegistro(unittest.TestCase):
 
     def test_registrar_mult(self):
         try:
-            appium_server()
+            #appium_server()
             udid = pegar_udids()
             porta_livre()
-            iniciar_appium()
+            #iniciar_appium()
 
-            driver = criar_drivers(4723, udid[0])
+            driver = criar_driver(4723, udid[0])
 
             whatsapp = WhatsAppPage(driver)
 
-            numero = whatsapp.pegarNumero(udid)
+            numero = whatsapp.pegarNumero(udid[0])
             whatsapp.abrirWhatsapp()
             whatsapp.selecionar_linguagem()
             whatsapp.clicar_prosseguir()

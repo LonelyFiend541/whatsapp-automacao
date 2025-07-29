@@ -1,13 +1,10 @@
-import re
-import subprocess
-import time
-from until.retries import retry
-from until.waits import *
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
-
-
-
+import time
+from until.waits import *
+from until.retries import *
+import re
+import subprocess
 
 
 
@@ -16,7 +13,7 @@ class WhatsAppPage:
     def __init__(self, driver):
         self.driver = driver
 
-    @retry(max_tentativas=3, delay=1)
+
     def pegarNumero(self, udid):
         try:
             self.driver.press_keycode(3)
@@ -25,24 +22,33 @@ class WhatsAppPage:
             esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.dialer:id/dialpad_spacer_view")).click()
 
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
-            esperar_elemento_visivel(self.driver,
-                                     (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"), 20)
-            campoNumero = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"))
-            numeros = campoNumero.text
-            print(numeros)
-            numeros = re.findall(r"\[(\d+)]", campoNumero.text)
-            esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-            numero = int(numeros[0])
-            print(numero)
-            self.driver.terminate_app("com.samsung.android.dialer")
-            return numero
+            if verificar_elemento_visivel(self.driver,(By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"), 20):
+                campoNumero = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"))
+                numeros = campoNumero.text
+                print(numeros)
+                numeros = re.findall(r"\[(\d+)]", campoNumero.text)
+                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
+                numero = int(numeros[0])
+                print(numero)
+                self.driver.terminate_app("com.samsung.android.dialer")
+                return numero
+            elif esperar_elemento_visivel(self.driver, (By.ID, "android:id/message")).text == 'Problema de conexão ou código MMI inválido.':
+                    print('Numero Cancelado')
+                    esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
+                    raise 'numero cancelado'
+            elif esperar_elemento_visivel(self.driver, (By.ID, "android:id/message")).text == 'UNKNOWN APPLICATION':
+                print('Chip da tim nao identificado')
+                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
+                raise 'numero cancelado'
+
+
 
 
         except Exception as e:
 
             print(f"Erro ao pegar numero: {e}")
 
-            pass
+
 
     def abrirWhatsapp(self):
         time.sleep(2)
