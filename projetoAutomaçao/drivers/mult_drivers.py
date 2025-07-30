@@ -6,6 +6,10 @@ from appium.options.android import UiAutomator2Options
 from appium import webdriver
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pages.whatsapp_page import *
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 
 def pegar_udids():
@@ -23,6 +27,11 @@ def porta_livre(porta_inicial=4723):
             if s.connect_ex(('localhost', porta)) != 0:
                 return porta
             porta += 2  # evita conflitos de porta paralelos
+
+def gerar_porta_por_udid(udid, base_porta=4723):
+    hash_val = abs(hash(udid)) % 1000
+    return base_porta + (hash_val * 2)
+
 
 
 def iniciar_appium(porta):
@@ -59,13 +68,12 @@ def criar_drivers(udid, porta):
     return driver
 
 
-def iniciar_appium_para_udid(udid):
+def iniciar_appium_para_udid(udid, porta):
     """
     Inicia Appium e driver para um udid específico.
     Retorna (driver, service) ou (None, None) em caso de erro.
     """
     try:
-        porta = porta_livre()
         service = iniciar_appium(porta)
         driver = criar_drivers(udid, porta)
         return (driver, service)
@@ -83,7 +91,10 @@ def iniciar_ambiente_para_todos():
     drivers_services = []
 
     with ThreadPoolExecutor(max_workers=len(udids)) as executor:
-        futures = [executor.submit(iniciar_appium_para_udid, udid) for udid in udids]
+        futures = [
+            executor.submit(iniciar_appium_para_udid, udid, gerar_porta_por_udid(udid))
+            for udid in udids
+        ]
         for future in as_completed(futures):
             driver_service = future.result()
             if driver_service[0] and driver_service[1]:
@@ -98,7 +109,6 @@ def rodar_automacao(driver):
         whatsapp = WhatsAppPage(driver)
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
-
         numero = whatsapp.pegarNumero(udid)
         whatsapp.abrirWhatsapp()
         whatsapp.selecionar_linguagem()

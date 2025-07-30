@@ -3,9 +3,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC  # ✅ correto
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from selenium.common.exceptions import TimeoutException
+
 
 # ...existing code...
-def _clicar_elemento(self, by, value, timeout=10):
+def clicar_elemento(self, by, value, timeout=10):
     try:
         esperar_elemento_visivel(self.driver, (by, value), timeout).click()
         return True
@@ -13,7 +15,7 @@ def _clicar_elemento(self, by, value, timeout=10):
         print(f"Erro ao clicar elemento {value}: {e}")
         return False
 
-def _texto_elemento(self, by, value, timeout=10):
+def texto_elemento(self, by, value, timeout=10):
     try:
         elem = esperar_elemento_visivel(self.driver, (by, value), timeout)
         return elem.text if elem else ""

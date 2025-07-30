@@ -11,47 +11,66 @@ class WhatsAppPage:
     def __init__(self, driver):
         self.driver = driver
 
+
+    def abrirDiscador(self):
+        self.driver.press_keycode(3)
+        self.driver.activate_app('com.samsung.android.dialer')
+        dialpad = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.dialer:id/dialpad_spacer_view"))
+        if dialpad:
+            dialpad.click()
+
+    @retry(max_tentativas=3, delay=1)
     def pegarNumero(self, udid):
         """
         Tenta obter o número do chip via discador Samsung.
         Retorna o número ou lança exceção em caso de erro.
+
+        Nota: Este método utiliza o decorador @retry para tentar novamente até 3 vezes em caso de falha, com 1 segundos de espera entre as tentativas.
         """
+
         try:
-            self.driver.press_keycode(3)
-            self.driver.activate_app('com.samsung.android.dialer')
-            esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.dialer:id/dialpad_spacer_view")).click()
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
+            try:
+                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"))
+                if escolherChip:
+                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 1"]'))
+                    chip1.click()
+            except:
+                pass
             mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"))
             mensagem_texto = mensagem_elem.text if mensagem_elem else ""
             if verificar_elemento_visivel(self.driver, (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"), 20):
                 numeros = re.findall(r"\[(\d+)]", mensagem_texto)
+                time.sleep(0.5)
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                self.driver.terminate_app("com.samsung.android.dialer")
                 if numeros:
                     numero = int(numeros[0])
                     print(f"Número encontrado: {numero}")
+                    print(mensagem_texto)
                     return numero
                 else:
                     raise ValueError("Número não encontrado na mensagem.")
             elif mensagem_texto == 'Problema de conexão ou código MMI inválido.':
                 print('Número cancelado')
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                self.driver.terminate_app("com.samsung.android.dialer")
                 raise RuntimeError('Número cancelado')
             elif mensagem_texto == 'UNKNOWN APPLICATION':
                 print('Chip da TIM não identificado')
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                self.driver.terminate_app("com.samsung.android.dialer")
                 raise RuntimeError('Chip da TIM não identificado')
             else:
                 print(f"Mensagem inesperada: {mensagem_texto}")
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                self.driver.terminate_app("com.samsung.android.dialer")
-                raise RuntimeError('Mensagem inesperada ao tentar pegar número.')
+                print(f"[pegarNumero] Erro: {mensagem_texto}")
+
+
         except Exception as e:
-            print(f"[pegarNumero] Erro: {e}")
-            self.driver.terminate_app("com.samsung.android.dialer")
+            raise {e}
             return None
+
+    def fecharDiscador(self):
+        self.driver.terminate_app("com.samsung.android.dialer")
+
 
     def abrirWhatsapp(self):
         try:
@@ -84,7 +103,7 @@ class WhatsAppPage:
             campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/registration_phone"))
             campo.send_keys(numero)
             dd = self.driver.find_element(By.ID, 'com.whatsapp:id/registration_cc')
-            if dd == " ":
+            if dd.text == " ":
                 dd.send_keys('55')
             botao = self.driver.find_element(By.ID, "com.whatsapp:id/registration_submit")
             botao.click()
@@ -101,7 +120,7 @@ class WhatsAppPage:
             time.sleep(0.5)
             return True
         except Exception as e:
-            print(f"[confirmarNumero] Erro: {e}")
+            print(f"[confirmarNumero] Erro: Não Precisou Confirmar o Numero")
             return False
 
     def verificarBanido(self):
@@ -181,7 +200,7 @@ class WhatsAppPage:
             print('abriu o app')
             return True
         except Exception as e:
-            print(f"[abrirAppMensagens] Erro: {e}")
+            print(f"[abrirAppMensagens] Erro: Não Abriu o App De Mensagem ")
             return False
 
     def pegarCodigoSms(self):
@@ -256,7 +275,7 @@ class WhatsAppPage:
             print('negou o backup')
             return True
         except Exception as e:
-            print(f"[aceitarPermissao] Erro: {e}")
+            print(f"[aceitarPermissao] Erro: Não Aceitou as Permissoes")
             return False
 
     def colocarNome(self):
@@ -266,7 +285,7 @@ class WhatsAppPage:
             print("colocou o nome")
             return True
         except Exception as e:
-            print(f"[colocarNome] Erro: {e}")
+            print(f"[colocarNome] Erro: Não Colocou o Nome")
             return False
 
     def finalizarPerfil(self):
@@ -278,5 +297,5 @@ class WhatsAppPage:
             time.sleep(10)
             return True
         except Exception as e:
-            print(f"[finalizarPerfil] Erro: {e}")
+            print(f"[finalizarPerfil] Erro: Não Finalizou o Perfil")
             return False
