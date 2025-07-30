@@ -4,7 +4,7 @@ import socket
 from appium.webdriver.appium_service import AppiumService
 from appium.options.android import UiAutomator2Options
 from appium import webdriver
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pages.whatsapp_page import *
 
 
@@ -59,15 +59,35 @@ def criar_drivers(udid, porta):
     return driver
 
 
-def iniciar_ambiente_para_todos():
-    udids = pegar_udids()
-    drivers_services = []
-
-    for udid in udids:
+def iniciar_appium_para_udid(udid):
+    """
+    Inicia Appium e driver para um udid específico.
+    Retorna (driver, service) ou (None, None) em caso de erro.
+    """
+    try:
         porta = porta_livre()
         service = iniciar_appium(porta)
         driver = criar_drivers(udid, porta)
-        drivers_services.append((driver, service))
+        return (driver, service)
+    except Exception as e:
+        print(f"❌ Erro ao iniciar Appium para {udid}: {e}")
+        return (None, None)
+
+
+def iniciar_ambiente_para_todos():
+    """
+    Inicia Appium e drivers para todos os dispositivos em paralelo.
+    Retorna lista de tuplas (driver, service).
+    """
+    udids = pegar_udids()
+    drivers_services = []
+
+    with ThreadPoolExecutor(max_workers=len(udids)) as executor:
+        futures = [executor.submit(iniciar_appium_para_udid, udid) for udid in udids]
+        for future in as_completed(futures):
+            driver_service = future.result()
+            if driver_service[0] and driver_service[1]:
+                drivers_services.append(driver_service)
 
     return drivers_services
 
@@ -110,9 +130,7 @@ def rodar_automacao(driver):
 
 if __name__ == "__main__":
     drivers_services = iniciar_ambiente_para_todos()
-    drivers = [ds[0] for ds in drivers_services]
-
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    drivers = [ds[0] for ds in drivers_services if ds[0] is not None]
 
     with ThreadPoolExecutor(max_workers=len(drivers)) as executor:
         futures = [executor.submit(rodar_automacao, driver) for driver in drivers]
@@ -123,6 +141,6 @@ if __name__ == "__main__":
                 print(f"❌ Erro durante execução paralela: {e}")
 
     for _, service in drivers_services:
-        if service.is_running:
-           print("🛑 Parando Appium...")
-           service.stop()
+        if service and service.is_running:
+            print("🛑 Parando Appium...")
+            service.stop()

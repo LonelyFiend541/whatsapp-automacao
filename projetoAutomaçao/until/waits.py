@@ -4,7 +4,23 @@ from selenium.webdriver.support import expected_conditions as EC  # ✅ correto
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# ...existing code...
+def _clicar_elemento(self, by, value, timeout=10):
+    try:
+        esperar_elemento_visivel(self.driver, (by, value), timeout).click()
+        return True
+    except Exception as e:
+        print(f"Erro ao clicar elemento {value}: {e}")
+        return False
 
+def _texto_elemento(self, by, value, timeout=10):
+    try:
+        elem = esperar_elemento_visivel(self.driver, (by, value), timeout)
+        return elem.text if elem else ""
+    except Exception as e:
+        print(f"Erro ao obter texto do elemento {value}: {e}")
+        return ""
+# ...existing code...
 
 def esperar_elemento_visivel(driver: object, locator: object, timeout: object = 10):
     try:
