@@ -46,6 +46,7 @@ class WhatsAppPage:
                 if numeros:
                     numero = int(numeros[0])
                     print(f"Número encontrado: {numero}")
+
                     return numero
                 else:
                     raise ValueError("Número não encontrado na mensagem.")
@@ -126,8 +127,10 @@ class WhatsAppPage:
         try:
             elemento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
             if elemento and elemento.text == 'REGISTRAR NOVO NÚMERO DE TELEFONE':
+
                 raise ChipBanidoException("❌ Número banido pelo WhatsApp")
             return True
+  
         except TimeoutException:
             print("[verificarBanido] Não apareceu botão de banimento – ignorando.")
             return False
@@ -143,8 +146,10 @@ class WhatsAppPage:
                 esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button')).click()
                 time.sleep(0.5)
                 esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button')).click()
+
                 raise ChipEmAnaliseException("❌ Chip em processo de análise")
             return True
+
         except TimeoutException:
             print("[pedirAnalise] Não apareceu botão 'PEDIR ANÁLISE' – ignorando.")
             return False
@@ -159,8 +164,10 @@ class WhatsAppPage:
                 elemento.click()
                 analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/appeal_submitted_heading'))
                 print(analise.text)
+
                 raise ChipEmAnaliseException("❌ Chip já em análise")
             return True
+
         except TimeoutException:
             print("[verificarAnalise] Não apareceu botão de status de análise – ignorando.")
             return False
@@ -170,7 +177,9 @@ class WhatsAppPage:
 
     def verificarChip(self):
         try:
+
             tipoderecebimento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/entire_content_holder'))
+
             if tipoderecebimento:
                 esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')).click()
                 try:
@@ -185,10 +194,17 @@ class WhatsAppPage:
                     esperar_elemento_visivel(self.driver, (By.ID,
                         'com.android.permissioncontroller:id/permission_allow_button')).click()
                 except Exception as e:
+
                     print(f"[verificarChip] Erro ao aceitar condições: Não verificou o Chip")
             return True
         except Exception as e:
             print(f"[verificarChip] Erro: Não verificou o Chip")
+
+                    print(f"[verificarChip] Erro ao aceitar condições: {e}")
+            return True
+        except Exception as e:
+            print(f"[verificarChip] Erro: {e}")
+
             return False
 
     def abrirAppMensagens(self):
@@ -264,7 +280,9 @@ class WhatsAppPage:
                 print(f"[concluir_perfil] Erro ao aceitar notificações: {e}")
             return True
         except Exception as e:
+
             print(f"[concluir_perfil] Erro: Erro ao Concluir perfil")
+
             return False
 
     def aceitarPermissao(self):
