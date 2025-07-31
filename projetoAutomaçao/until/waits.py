@@ -50,7 +50,7 @@ def executar_paralelo_arg(*funcoes):
     for thread in threads:
         thread.join()
 
-def executar_paralelo(*funcoes):
+def executar_paralelo_normal(*funcoes):
     with ThreadPoolExecutor(max_workers=len(funcoes)) as executor:
         # Envia cada função (sem argumentos) para execução
         futures = [executor.submit(func) for func in funcoes]
@@ -59,6 +59,27 @@ def executar_paralelo(*funcoes):
             exc = future.exception()
             if exc:
                 raise exc  # Propaga a exceção original corretamente
+
+
+def executar_paralelo(*funcoes):
+    """
+    Executa funções em paralelo e interrompe se alguma retornar True.
+    """
+    with ThreadPoolExecutor() as executor:
+        futuros = {executor.submit(func): func for func in funcoes}
+        for future in as_completed(futuros):
+            try:
+                resultado = future.result()
+                if resultado is True:
+                    # Cancela os outros
+                    for f in futuros:
+                        if not f.done():
+                            f.cancel()
+                    print("⚠️ Uma das funções retornou True. Interrompendo automação.")
+                    return True
+            except Exception as e:
+                print(f"❌ Erro ao executar função paralela: {e}")
+    return False
 
 
 class WebDriverException(Exception):
