@@ -110,18 +110,20 @@ def rodar_automacao(driver):
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
         numero = whatsapp.pegarNumero(udid)
-        whatsapp.abrirWhatsapp()
         whatsapp.selecionar_linguagem()
         whatsapp.clicar_prosseguir()
         whatsapp.inserir_numero(numero)
         whatsapp.confirmarNumero()
 
-        executar_paralelo(
+        parar = executar_paralelo(
             whatsapp.verificarBanido,
             whatsapp.verificarAnalise,
             whatsapp.pedirAnalise,
             whatsapp.verificarChip
         )
+        if parar:
+            print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
+            return
 
         if whatsapp.abrirAppMensagens():
             codigo = whatsapp.pegarCodigoSms()
@@ -134,6 +136,7 @@ def rodar_automacao(driver):
         whatsapp.finalizarPerfil()
 
         print(f"✅ Automação concluída para: {udid}")
+
     except Exception as e:
         print(f"❌ Erro no dispositivo {driver.capabilities['deviceName']}: {e}")
 
