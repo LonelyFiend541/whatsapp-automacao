@@ -1,4 +1,11 @@
+
 import tkinter as tk
+from idlelib.configdialog import font_sample_text
+
+janela = tk.Tk()                          # Cria uma janela
+janela.title('central de Recadastro')
+janela.geometry('600x400')
+
 
 container = tk.Frame(janela, bg="#f0f0f0")
 container.place(relx=0.5, rely=0.5, anchor="center")
