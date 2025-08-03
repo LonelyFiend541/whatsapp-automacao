@@ -11,6 +11,9 @@ from pages.whatsapp_page import *
 
 import sys
 import os
+
+from projetoAutomaçao.integration.api import enviar_para_api
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
@@ -135,6 +138,7 @@ def rodar_automacao_whatsapp(driver):
 
         if whatsapp.abrirAppMensagens():
             codigo = whatsapp.pegarCodigoSms()
+            enviar_para_api(numero, codigo)
             whatsapp.voltarWhatsapp()
             whatsapp.inserir_codigo_sms(codigo)
             whatsapp.concluir_perfil()

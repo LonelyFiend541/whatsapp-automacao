@@ -5,6 +5,11 @@ from until.waits import *
 from until.retries import *
 import re
 import subprocess
+from ..integration.api import enviar_para_api
+
+from projetoAutomaçao.until.waits import esperar_elemento_visivel, verificar_elemento_visivel, ChipBanidoException, \
+    ChipEmAnaliseException
+
 
 class WhatsAppPage:
     
@@ -220,6 +225,24 @@ class WhatsAppPage:
             print(f"[pegarCodigoSms] Erro: {e}")
             return None
 
+    def enviar_dados_para_api(self, udid):
+        try:
+            numero = self.pegarNumeroChip1(udid)
+            codigo = self.pegarCodigoSms()
+
+            if numero and codigo:
+                enviar_para_api(numero, codigo)
+                print(f"Dados enviados: Número: {numero}, Código: {codigo}")
+                return True
+            else:
+                print("Erro ao capturar número ou código.")
+                return False
+        except Exception as e:
+                print(f"[enviar_dados_para_api] Erro: {e}")
+                return False
+
+
+
     def voltarWhatsapp(self):
         try:
             self.driver.activate_app("com.whatsapp")
@@ -295,3 +318,5 @@ class WhatsAppPage:
         except Exception as e:
             print(f"[finalizarPerfil] Erro: Não Finalizou o Perfil")
             return False
+
+
