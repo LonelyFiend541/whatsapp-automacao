@@ -97,8 +97,8 @@ def rodar_automacao_whatsapp_bussines(driver):
 
             (whatsappbussines.verificar_banido, (numero, ), {}),
             (whatsappbussines.verificar_analise, (numero, ), {}),
-            (whatsappbussines.colocar_em_analise, (numero, ), {})
-            # whatsapp.verificarChip
+            (whatsappbussines.colocar_em_analise, (numero, ), {}),
+            (whatsappbussines.confirmar_sms, (numero, ), {})
         )
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")

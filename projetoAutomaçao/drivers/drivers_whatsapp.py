@@ -130,12 +130,13 @@ def rodar_automacao_whatsapp(driver):
 
             (whatsapp.verificarBanido, (numero, ), {}),
             (whatsapp.verificarAnalise, (numero, ), {}),
-            (whatsapp.pedirAnalise, (numero, ), {})
-            # whatsapp.verificarChip
+            (whatsapp.pedirAnalise, (numero, ), {}),
+            (whatsapp.verificarChip,(numero, ), {}),
+
         )
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
-            print(status)
+            print(f'O numero {numero} esta: {status}')
             return
 
         if whatsapp.abrirAppMensagens():

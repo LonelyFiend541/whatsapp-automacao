@@ -42,11 +42,10 @@ class WhatsAppPage:
                                           20):
                 numeros = re.findall(r"\[(\d+)]", mensagem_texto)
                 time.sleep(0.5)
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                 if numeros:
                     numero = int(numeros[0])
                     print(f"Número encontrado: {numero}")
-
+                    esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                     return numero
                 else:
                     raise ValueError("Número não encontrado na mensagem.")
@@ -63,10 +62,11 @@ class WhatsAppPage:
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                 print(f"[pegarNumero] Erro: {mensagem_texto}")
 
-
         except Exception as e:
-            raise {e}
-            return None
+
+            print(f"[pegarNumeroChip1] Erro: {e}")
+
+            raise
 
     def abrirWhatsapp(self):
         try:
@@ -116,7 +116,6 @@ class WhatsAppPage:
             time.sleep(0.5)
             return True
         except Exception as e:
-            print(f"[confirmarNumero] Erro: Não Precisou Confirmar o Numero")
             return False
 
     def verificarBanido(self, numero):
@@ -124,7 +123,7 @@ class WhatsAppPage:
             banido = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/action_button"))
             if banido.text == "REGISTRAR NOVO NÚMERO DE TELEFONE":
                 print("❌ Numero Banido ❌")
-                status = f"❌ Numero {numero}: Banido ❌"
+                status = 'Banido'
                 return True, status
         except:
             return False, None
@@ -141,7 +140,7 @@ class WhatsAppPage:
                 analise = esperar_elemento_visivel(self.driver,
                                                    (By.ID, 'com.whatsapp:id/appeal_submitted_heading'))
                 print(analise.text)
-                status = f"⛔Pedido de analise do {numero} feito⛔"
+                status = 'Analise'
                 return True, status
 
         except:
@@ -154,14 +153,14 @@ class WhatsAppPage:
             analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
             if analise.text == 'VERIFICAR STATUS DA ANÁLISE':
                 print('⛔ Em Analise ⛔')
-                status = f'⛔ Numero {numero} em analise ⛔'
+                status = 'Analise'
                 return True, status
         except:
             return False, None
             pass
 
 
-    def verificarChip(self):
+    def verificarChip(self, numero):
         try:
 
             tipoderecebimento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/entire_content_holder'))
