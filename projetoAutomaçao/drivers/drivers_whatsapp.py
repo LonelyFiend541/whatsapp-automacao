@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pages.smartphone import SmartphonePage
 from pages.wa_bussines import *
 from pages.whatsapp_page import *
-
+from table.tabela_numero import *
 import sys
 import os
 
@@ -137,11 +137,12 @@ def rodar_automacao_whatsapp(driver):
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
             print(f'O numero {numero} esta: {status}')
+            table.salvar_numeros(numero, status)
             return
 
         if whatsapp.abrirAppMensagens():
             codigo = whatsapp.pegarCodigoSms()
-            enviar_para_api(numero, codigo)
+            #enviar_para_api(numero, codigo)
             whatsapp.voltarWhatsapp()
             whatsapp.inserir_codigo_sms(codigo)
             whatsapp.concluir_perfil()

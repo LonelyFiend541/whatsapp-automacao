@@ -26,26 +26,21 @@ class WhatsAppPage:
         try:
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             try:
-                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"),
-                                                        10)
+                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"))
                 if escolherChip:
-                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                                   '//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 1"]'),
-                                                     10)
+                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH,'//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 1"]'))
                     chip1.click()
             except:
                 pass
-            mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"), 10)
+            mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"))
             mensagem_texto = mensagem_elem.text if mensagem_elem else ""
-            if verificar_elemento_visivel(self.driver,
-                                          (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"),
-                                          20):
+            if verificar_elemento_visivel(self.driver,(By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"),20):
                 numeros = re.findall(r"\[(\d+)]", mensagem_texto)
-                time.sleep(0.5)
+                time.sleep(1)
+                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                 if numeros:
                     numero = int(numeros[0])
                     print(f"Número encontrado: {numero}")
-                    esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                     return numero
                 else:
                     raise ValueError("Número não encontrado na mensagem.")
@@ -58,13 +53,13 @@ class WhatsAppPage:
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                 raise RuntimeError('Chip da TIM não identificado')
             else:
-                print(f"Mensagem inesperada: {mensagem_texto}")
+
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                 print(f"[pegarNumero] Erro: {mensagem_texto}")
 
         except Exception as e:
 
-            print(f"[pegarNumeroChip1] Erro: {e}")
+            print(f"[pegarNumeroChip1] Falha em pegar numero")
 
             raise
 
