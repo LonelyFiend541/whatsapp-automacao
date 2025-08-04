@@ -46,7 +46,7 @@ class WhatsAppPage:
                 if numeros:
                     numero = int(numeros[0])
                     print(f"Número encontrado: {numero}")
-
+                    esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                     return numero
                 else:
                     raise ValueError("Número não encontrado na mensagem.")
@@ -161,7 +161,7 @@ class WhatsAppPage:
             pass
 
 
-    def verificarChip(self):
+    def verificarChip(self, numero):
         try:
 
             tipoderecebimento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/entire_content_holder'))

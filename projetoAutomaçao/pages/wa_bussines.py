@@ -25,7 +25,7 @@ class WaBussinesPage:
         try:
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             try:
-                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"), 10)
+                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"), 20)
                 if escolherChip:
                     chip2 = esperar_elemento_visivel(self.driver, (By.XPATH,
                                                                    '//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 2"]'))
@@ -33,13 +33,13 @@ class WaBussinesPage:
             except:
                 pass
 
-            mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"), 10)
+            mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"), 20)
             mensagem_texto = mensagem_elem.text if mensagem_elem else ""
             if verificar_elemento_visivel(self.driver,
                                           (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"),
                                           20):
                 numeros = re.findall(r"\[(\d+)]", mensagem_texto)
-                time.sleep(0.5)
+                time.sleep(1)
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
                 if numeros:
                     numero = int(numeros[0])
@@ -64,6 +64,18 @@ class WaBussinesPage:
         except Exception as e:
             raise {e}
             return None
+
+    def confirmar_sms(self, numero):
+        try:
+            confirmar = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/secondary_button"))
+            confirmar.click()
+            receberSms = esperar_elemento_visivel(self.driver, (By.XPATH, '(//android.widget.RadioButton[@resource-id="com.whatsapp.w4b:id/reg_method_checkbox"])[2]'))
+            receberSms.click()
+        except:
+            pass
+
+
+
 
     def aceitar_termos(self):
         try:
@@ -100,7 +112,6 @@ class WaBussinesPage:
     def verificar_analise(self,numero):
         try:
             analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/action_button'))
-            print(analise.text)
             if analise.text == 'VERIFICAR STATUS DA ANÁLISE':
                 print('⛔ Em Analise ⛔')
                 status = f'⛔ Numero {numero} em analise ⛔'
@@ -208,21 +219,23 @@ class WaBussinesPage:
             print(f"[colocar_nome] Erro: Não colocou o nome")
             return False
 
+    @retry(max_tentativas=2, delay=2)
     def selecionar_empresa(self):
         try:
-            categoria = esperar_elemento_visivel(self.driver, (By.ID, '//android.widget.TextView[@text="Outras empresas"]'))
+            categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
             categoria.click()
-            avancar = esperar_elemento_visivel(self.driver, (By.ID, '//android.widget.TextView[@text="Avançar"]'))
+            avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
             avancar.click()
         except Exception as e:
             print(f"[selecionar_empresa] Erro: Não selecionou a empresa")
             return False
 
+    @retry(max_tentativas=2, delay=2)
     def horario_de_atendimento(self):
         try:
-            horario = esperar_elemento_visivel(self.driver, (By.ID, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[2]/android.widget.RadioButton'))
+            horario = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[2]/android.widget.RadioButton'))
             horario.click()
-            avancar = esperar_elemento_visivel(self.driver, (By.ID, '//android.widget.TextView[@text="Avançar"]'))
+            avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
             avancar.click()
             time.sleep(1)
             avancar.click()
@@ -233,7 +246,7 @@ class WaBussinesPage:
 
     def foto_perfil(self):
         try:
-            avancar = esperar_elemento_visivel(self.driver, (By.ID, '//android.widget.TextView[@text="Avançar"]'))
+            avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
             avancar.click()
         except Exception as e:
             print("[foto_perfil] Erro: Não avançou na foto de perfil")
@@ -241,7 +254,7 @@ class WaBussinesPage:
 
     def formas_encontrar_empresa(self):
         try:
-            pular = esperar_elemento_visivel(self.driver, (By.ID, '//android.widget.TextView[@text="Pular"]'))
+            pular = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Pular"]'))
             pular.click()
             time.sleep(1)
             pular.click()
