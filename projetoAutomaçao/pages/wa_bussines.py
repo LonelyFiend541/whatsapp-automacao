@@ -5,7 +5,7 @@ import time
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
-from until.retries import *
+from until.utilitys import *
 from until.waits import *
 
 
@@ -86,26 +86,30 @@ class WaBussinesPage:
             print("[registrar_numero] Erro: Não registrou o número")
             return False
 
-    def verificar_banido(self):
+    def verificar_banido(self, numero):
         try:
             banido = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/action_button"))
             if banido.text == "REGISTRAR NOVO NÚMERO DE TELEFONE":
                 print("❌ Numero Banido ❌")
-                return True
+                status = f"❌ Numero {numero} Banido ❌"
+                return True, status
         except:
+            return False, None
             pass
 
-    def verificar_analise(self):
+    def verificar_analise(self,numero):
         try:
             analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/action_button'))
             print(analise.text)
             if analise.text == 'VERIFICAR STATUS DA ANÁLISE':
                 print('⛔ Em Analise ⛔')
-                return True
+                status = f'⛔ Numero {numero} em analise ⛔'
+                return True, status
         except:
+            return False, None
             pass
 
-    def colocar_em_analise(self):
+    def colocar_em_analise(self, numero):
         try:
             pedirAnalise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/action_button'))
             if pedirAnalise.text == "PEDIR ANÁLISE":
@@ -114,8 +118,10 @@ class WaBussinesPage:
                 enviar.click()
                 analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/appeal_submitted_heading'))
                 print(analise.text)
-                return True
+                status = f"⛔Pedido de analise do {numero} feito⛔"
+                return True, status
         except:
+            return False, None
             pass
 
     def confirmar_chip(self):
@@ -128,6 +134,7 @@ class WaBussinesPage:
 
     def abrir_app_mensagens(self):
         try:
+            time.sleep(5)
             campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/verify_sms_code_input"))
             time.sleep(1)
             self.driver.activate_app('com.samsung.android.messaging')
@@ -139,6 +146,7 @@ class WaBussinesPage:
 
     def pegarCodigoSms(self):
         try:
+
             appMensagem = esperar_elemento_visivel(self.driver, (By.XPATH,
                                                                  '//android.widget.TextView[@content-desc="2 9 7 4 4 "]'))
             appMensagem.click()

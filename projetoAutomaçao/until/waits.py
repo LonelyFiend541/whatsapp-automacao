@@ -61,25 +61,49 @@ def executar_paralelo_normal(*funcoes):
                 raise exc  # Propaga a exceção original corretamente
 
 
-def executar_paralelo(*funcoes):
-    """
-    Executa funções em paralelo e interrompe se alguma retornar True.
-    """
+
+def executar_paralelo(*tarefas):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from collections.abc import Callable
+
+    tarefas_padronizadas = []
+    for t in tarefas:
+        if isinstance(t, Callable):
+            tarefas_padronizadas.append((t, (), {}))
+        elif isinstance(t, tuple):
+            if len(t) == 1 and isinstance(t[0], Callable):
+                tarefas_padronizadas.append((t[0], (), {}))
+            elif len(t) == 3:
+                tarefas_padronizadas.append(t)
+            else:
+                raise ValueError("Tupla inválida. Use (func), (func, args, kwargs)")
+        else:
+            raise ValueError("Cada tarefa deve ser uma função ou uma tupla válida.")
+
     with ThreadPoolExecutor() as executor:
-        futuros = {executor.submit(func): func for func in funcoes}
+        futuros = {
+            executor.submit(func, *args, **kwargs): func
+            for func, args, kwargs in tarefas_padronizadas
+        }
         for future in as_completed(futuros):
             try:
                 resultado = future.result()
-                if resultado:
-                    # Cancela os outros
+                if isinstance(resultado, tuple):
+                    booleano, status = resultado
+                else:
+                    booleano, status = resultado, None
+
+                if booleano:
                     for f in futuros:
                         if not f.done():
                             f.cancel()
                     print("⚠️ Uma das funções retornou True. Interrompendo automação.")
-                    return True
+                    return True, status
             except Exception as e:
                 print(f"❌ Erro ao executar função paralela: {e}")
-    return False
+    return False, None
+
+
 
 
 class WebDriverException(Exception):

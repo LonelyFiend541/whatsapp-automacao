@@ -3,7 +3,7 @@ import time
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-from until.retries import retry
+from until.utilitys import retry
 from drivers.drivers_whatsapp import *
 porta = porta_livre()
 # 🔌 Busca os dispositivos conectados via ADB

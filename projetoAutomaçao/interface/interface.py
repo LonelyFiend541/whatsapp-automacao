@@ -6,9 +6,8 @@ import sys
 from drivers.drivers_whatsapp_bussines import *
 from drivers.drivers_whatsapp import *
 from wireless.wireless import *
-
-from projetoAutomaçao.drivers.drivers_whatsapp import whatsapp
-from projetoAutomaçao.drivers.drivers_whatsapp_bussines import bussines
+from drivers.drivers_whatsapp import whatsapp
+from drivers.drivers_whatsapp_bussines import bussines
 
 # Lista de serviços de drivers (caso necessário)
 drivers_services = []
@@ -67,6 +66,10 @@ def limpar():
     log_area.delete(1.0, tk.END)
     log_area.configure(state='disabled')
 
+def encerrar_serv():
+    label.config(text="ENCERRAR")
+    Thread(target=encerrar_appium).start()
+
 # === Label principal ===
 label = tk.Label(
     container,
@@ -88,7 +91,11 @@ BTverificar = tk.Button(container, text="VERIFICAR", command=verificarsf, **apar
 BTverificar.grid(row=3, column=1, padx=10, pady=5)
 
 BTlimpar = tk.Button(container, text="LIMPAR", command=limpar, **aparencia_botao)
-BTlimpar.grid(row=4, column=0, columnspan=2, pady=(15, 10))
+BTlimpar.grid(row=4, column=0, padx=10, pady=(10, 5))
+
+BTencerrar = tk.Button(container, text="ENCERRAR", command=encerrar_serv, **aparencia_botao)
+BTencerrar.grid(row=4, column=1, padx=10, pady=(10, 5))
+
 
 # === Área de log ===
 log_area = ScrolledText(container, height=10, width=60, state='disabled', bg="#f0f0f0")

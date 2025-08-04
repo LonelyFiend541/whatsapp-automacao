@@ -1,6 +1,8 @@
 import subprocess
 import time
 import socket
+from xmlrpc.client import boolean
+
 from appium.webdriver.appium_service import AppiumService
 from appium.options.android import UiAutomator2Options
 from appium import webdriver
@@ -91,15 +93,16 @@ def rodar_automacao_whatsapp_bussines(driver):
         whatsappbussines.aceitar_termos()
         whatsappbussines.registrar_numero(numero)
         time.sleep(1)
-        parar = executar_paralelo(
+        boolean, status = executar_paralelo(
 
-            whatsappbussines.verificar_banido,
-            whatsappbussines.verificar_analise,
-            whatsappbussines.colocar_em_analise
+            (whatsappbussines.verificar_banido, (numero, ), {}),
+            (whatsappbussines.verificar_analise, (numero, ), {}),
+            (whatsappbussines.colocar_em_analise, (numero, ), {})
             # whatsapp.verificarChip
         )
-        if parar:
+        if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
+            print(status)
             return
         whatsappbussines.confirmar_chip()
         if whatsappbussines.abrir_app_mensagens():

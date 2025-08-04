@@ -1,18 +1,16 @@
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
-import time
-from until.waits import *
-from until.retries import *
 import re
 import subprocess
-from ..integration.api import enviar_para_api
 
-from projetoAutomaçao.until.waits import esperar_elemento_visivel, verificar_elemento_visivel, ChipBanidoException, \
-    ChipEmAnaliseException
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+
+from integration.api import enviar_para_api
+from until.utilitys import *
+from until.waits import *
 
 
 class WhatsAppPage:
-    
+
     def __init__(self, driver):
         self.driver = driver
 
@@ -22,21 +20,26 @@ class WhatsAppPage:
         Tenta obter o número do chip via discador Samsung.
         Retorna o número ou lança exceção em caso de erro.
 
-        Nota: Este método utiliza o decorador @retry para tentar novamente até 3 vezes em caso de falha, com 1 segundos de espera entre as tentativas.
+        Nota: Este méodo utiliza o decorador @retry para tentar novamente até 3 vezes em caso de falha, com 1 segundos de espera entre as tentativas.
         """
 
         try:
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             try:
-                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"), 10)
+                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"),
+                                                        10)
                 if escolherChip:
-                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 1"]'), 10)
+                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH,
+                                                                   '//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 1"]'),
+                                                     10)
                     chip1.click()
             except:
                 pass
             mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"), 10)
             mensagem_texto = mensagem_elem.text if mensagem_elem else ""
-            if verificar_elemento_visivel(self.driver, (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"), 20):
+            if verificar_elemento_visivel(self.driver,
+                                          (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"),
+                                          20):
                 numeros = re.findall(r"\[(\d+)]", mensagem_texto)
                 time.sleep(0.5)
                 esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
@@ -77,7 +80,7 @@ class WhatsAppPage:
     def selecionar_linguagem(self):
         try:
             esperar_elemento_visivel(self.driver, (By.XPATH,
-                '//android.widget.CheckBox[@content-desc="Selecionar (idioma do dispositivo) como idioma do app"]')).click()
+                                                   '//android.widget.CheckBox[@content-desc="Selecionar (idioma do dispositivo) como idioma do app"]')).click()
             return True
         except Exception as e:
             print(f"[selecionar_linguagem] Erro: {e}")
@@ -116,54 +119,47 @@ class WhatsAppPage:
             print(f"[confirmarNumero] Erro: Não Precisou Confirmar o Numero")
             return False
 
-    def verificarBanido(self):
+    def verificarBanido(self, numero):
         try:
-            elemento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
-            if elemento and elemento.text == 'REGISTRAR NOVO NÚMERO DE TELEFONE':
+            banido = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/action_button"))
+            if banido.text == "REGISTRAR NOVO NÚMERO DE TELEFONE":
+                print("❌ Numero Banido ❌")
+                status = f"❌ Numero {numero}: Banido ❌"
+                return True, status
+        except:
+            return False, None
+            pass
 
-                raise ChipBanidoException("❌ Número banido pelo WhatsApp")
-            return True
-        except TimeoutException:
-            print("[verificarBanido] Não apareceu botão de banimento – ignorando.")
-            return False
-        except Exception as e:
-            print(f"[verificarBanido] Erro: {e}")
-            return False
+    def pedirAnalise(self, numero):
 
-    def pedirAnalise(self):
         try:
-            elemento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
-            if elemento and elemento.text == "PEDIR ANÁLISE":
-                elemento.click()
-                esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button')).click()
-                time.sleep(0.5)
-                esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button')).click()
-
-                raise ChipEmAnaliseException("❌ Chip em processo de análise")
-            return True
-        except TimeoutException:
-            print("[pedirAnalise] Não apareceu botão 'PEDIR ANÁLISE' – ignorando.")
-            return False
-        except Exception as e:
-            print(f"[pedirAnalise] Erro: {e}")
-            return False
-
-    def verificarAnalise(self):
-        try:
-            elemento = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
-            if elemento and elemento.text == 'VERIFICAR STATUS DA ANÁLISE':
-                elemento.click()
-                analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/appeal_submitted_heading'))
+            pedirAnalise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
+            if pedirAnalise.text == "PEDIR ANÁLISE":
+                pedirAnalise.click()
+                enviar = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/submit_button'))
+                enviar.click()
+                analise = esperar_elemento_visivel(self.driver,
+                                                   (By.ID, 'com.whatsapp:id/appeal_submitted_heading'))
                 print(analise.text)
+                status = f"⛔Pedido de analise do {numero} feito⛔"
+                return True, status
 
-                raise ChipEmAnaliseException("❌ Chip já em análise")
-            return True
-        except TimeoutException:
-            print("[verificarAnalise] Não apareceu botão de status de análise – ignorando.")
-            return False
-        except Exception as e:
-            print(f"[verificarAnalise] Erro: {e}")
-            return False
+        except:
+            return False, None
+            pass
+
+
+    def verificarAnalise(self, numero):
+        try:
+            analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
+            if analise.text == 'VERIFICAR STATUS DA ANÁLISE':
+                print('⛔ Em Analise ⛔')
+                status = f'⛔ Numero {numero} em analise ⛔'
+                return True, status
+        except:
+            return False, None
+            pass
+
 
     def verificarChip(self):
         try:
@@ -174,15 +170,15 @@ class WhatsAppPage:
                 esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')).click()
                 try:
                     esperar_elemento_visivel(self.driver, (By.XPATH,
-                        '(//android.widget.RadioButton[@resource-id="com.whatsapp:id/reg_method_checkbox"])[2]')).click()
+                                                           '(//android.widget.RadioButton[@resource-id="com.whatsapp:id/reg_method_checkbox"])[2]')).click()
                     esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/continue_button')).click()
                 except Exception as e:
                     print(f"[verificarChip] Erro ao pedir SMS: {e}")
                 try:
                     esperar_elemento_visivel(self.driver, (By.ID,
-                        'com.android.permissioncontroller:id/permission_allow_button')).click()
+                                                           'com.android.permissioncontroller:id/permission_allow_button')).click()
                     esperar_elemento_visivel(self.driver, (By.ID,
-                        'com.android.permissioncontroller:id/permission_allow_button')).click()
+                                                           'com.android.permissioncontroller:id/permission_allow_button')).click()
                 except Exception as e:
 
                     print(f"[verificarChip] Erro ao aceitar condições: Não verificou o Chip")
@@ -191,6 +187,7 @@ class WhatsAppPage:
             print(f"[verificarChip] Erro: Não verificou o Chip")
 
             return False
+
 
     def abrirAppMensagens(self):
         try:
@@ -202,14 +199,15 @@ class WhatsAppPage:
             print(f"[abrirAppMensagens] Erro: Não Abriu o App De Mensagem ")
             return False
 
+
     def pegarCodigoSms(self):
         try:
             esperar_elemento_visivel(self.driver, (By.XPATH,
-                '(//android.widget.LinearLayout[@resource-id="com.samsung.android.messaging:id/card_view_sub_layout"])[1]')).click()
+                                                   '(//android.widget.LinearLayout[@resource-id="com.samsung.android.messaging:id/card_view_sub_layout"])[1]')).click()
             esperar_elemento_visivel(self.driver,
-                (By.XPATH, "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]"))
+                                     (By.XPATH, "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]"))
             mensagens = self.driver.find_elements(By.XPATH,
-                "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]")
+                                                  "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]")
             if mensagens:
                 ultima_mensagem = mensagens[-1]
                 codigoCompleto = ultima_mensagem.get_attribute('content-desc')
@@ -225,6 +223,7 @@ class WhatsAppPage:
             print(f"[pegarCodigoSms] Erro: {e}")
             return None
 
+
     def enviar_dados_para_api(self, udid):
         try:
             numero = self.pegarNumeroChip1(udid)
@@ -238,9 +237,8 @@ class WhatsAppPage:
                 print("Erro ao capturar número ou código.")
                 return False
         except Exception as e:
-                print(f"[enviar_dados_para_api] Erro: {e}")
-                return False
-
+            print(f"[enviar_dados_para_api] Erro: {e}")
+            return False
 
 
     def voltarWhatsapp(self):
@@ -253,6 +251,7 @@ class WhatsAppPage:
             print(f"[voltarWhatsapp] Erro: {e}")
             return False
 
+
     def inserir_codigo_sms(self, codigo):
         try:
             esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input")).send_keys(codigo)
@@ -262,22 +261,23 @@ class WhatsAppPage:
             print(f"[inserir_codigo_sms] Erro: {e}")
             return False
 
+
     def concluir_perfil(self):
         try:
             esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/submit")).click()
             print('clicou em aceitou')
             try:
                 permissao = verificar_elemento_visivel(self.driver, (By.ID,
-                    'com.android.permissioncontroller:id/permission_allow_button'))
+                                                                     'com.android.permissioncontroller:id/permission_allow_button'))
                 if permissao:
                     esperar_elemento_visivel(self.driver,
-                        (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
+                                             (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
                     time.sleep(1)
                     esperar_elemento_visivel(self.driver,
-                        (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
+                                             (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
                     time.sleep(1)
                     esperar_elemento_visivel(self.driver,
-                        (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
+                                             (By.ID, "com.android.permissioncontroller:id/permission_allow_button")).click()
                 print('aceitou as permissoes')
             except Exception as e:
                 print(f"[concluir_perfil] Erro ao aceitar notificações: {e}")
@@ -288,6 +288,7 @@ class WhatsAppPage:
 
             return False
 
+
     def aceitarPermissao(self):
         try:
             esperar_elemento_visivel(self.driver, (By.ID, "android:id/button2")).click()
@@ -296,6 +297,7 @@ class WhatsAppPage:
         except Exception as e:
             print(f"[aceitarPermissao] Erro: Não Aceitou as Permissoes")
             return False
+
 
     def colocarNome(self):
         try:
@@ -307,16 +309,15 @@ class WhatsAppPage:
             print(f"[colocarNome] Erro: Não Colocou o Nome")
             return False
 
+
     def finalizarPerfil(self):
         try:
             self.driver.find_element(By.ID, "com.whatsapp:id/register_name_accept").click()
             print('concluiu')
-            if esperar_elemento_visivel(self.driver,(By.ID, 'com.whatsapp:id/secondary_button')):
-                verificar_elemento_visivel(self.driver,(By.ID, 'com.whatsapp:id/secondary_button')).click()
+            if esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')):
+                verificar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')).click()
             time.sleep(10)
             return True
         except Exception as e:
             print(f"[finalizarPerfil] Erro: Não Finalizou o Perfil")
             return False
-
-

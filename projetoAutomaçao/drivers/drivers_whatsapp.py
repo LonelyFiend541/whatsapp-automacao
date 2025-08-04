@@ -12,7 +12,7 @@ from pages.whatsapp_page import *
 import sys
 import os
 
-from projetoAutomaçao.integration.api import enviar_para_api
+from integration.api import enviar_para_api
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -126,14 +126,16 @@ def rodar_automacao_whatsapp(driver):
         whatsapp.inserir_numero(numero)
         whatsapp.confirmarNumero()
         time.sleep(1)
-        parar = executar_paralelo(
-            whatsapp.verificarBanido,
-            whatsapp.verificarAnalise,
-            whatsapp.pedirAnalise,
-            whatsapp.verificarChip
+        boolean, status = executar_paralelo(
+
+            (whatsapp.verificarBanido, (numero, ), {}),
+            (whatsapp.verificarAnalise, (numero, ), {}),
+            (whatsapp.pedirAnalise, (numero, ), {})
+            # whatsapp.verificarChip
         )
-        if parar:
+        if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
+            print(status)
             return
 
         if whatsapp.abrirAppMensagens():
