@@ -4,9 +4,7 @@ import socket
 from appium.webdriver.appium_service import AppiumService
 from appium.options.android import UiAutomator2Options
 from appium import webdriver
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pages.smartphone import SmartphonePage
-from pages.wa_bussines import *
+from concurrent.futures import *
 from pages.whatsapp_page import *
 from table.tabela_numero import *
 import sys
@@ -146,8 +144,8 @@ def rodar_automacao_whatsapp(driver):
             whatsapp.voltarWhatsapp()
             whatsapp.inserir_codigo_sms(codigo)
             whatsapp.concluir_perfil()
-
-        whatsapp.aceitarPermissao()
+        if whatsapp.aceitarPermissao():
+            table.salvar_numeros(numero, status)
         whatsapp.colocarNome()
         whatsapp.finalizarPerfil()
 

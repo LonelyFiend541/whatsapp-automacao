@@ -1,14 +1,11 @@
 import tkinter as tk
-from tkinter.scrolledtext import ScrolledText
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import sys
-from drivers.drivers_whatsapp_bussines import *
-from drivers.drivers_whatsapp import *
-from wireless.wireless import *
-from drivers.drivers_whatsapp import whatsapp
+from tkinter.scrolledtext import ScrolledText
+from drivers.drivers_whatsapp import whatsapp, pegar_udids
 from drivers.drivers_whatsapp_bussines import bussines
-
+from until.utilitys import encerrar_appium
+from wireless.wireless import *
+import sys
 # Lista de serviços de drivers (caso necessário)
 drivers_services = []
 
