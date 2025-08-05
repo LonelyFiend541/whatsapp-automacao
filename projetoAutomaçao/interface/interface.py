@@ -15,7 +15,7 @@ drivers_services = []
 # === Janela principal ===
 janela = tk.Tk()
 janela.title('Central de Recadastro')
-janela.geometry('600x400')
+janela.geometry('800x600')
 
 # Container principal
 container = tk.Frame(janela, bg="#f0f0f0")
