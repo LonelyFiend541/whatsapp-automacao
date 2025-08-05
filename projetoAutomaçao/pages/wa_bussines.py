@@ -1,5 +1,7 @@
 import re
 import subprocess
+import time
+
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from until.utilitys import *
@@ -27,38 +29,34 @@ class WaBussinesPage:
                                                                    '//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 2"]'))
                     chip2.click()
             except:
-                raise 'Erro ao Pegar o numero'
-
+                pass
+            ok = esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1'))
             mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"), 20)
-            mensagem_texto = mensagem_elem.text if mensagem_elem else ""
-            if verificar_elemento_visivel(self.driver,
-                                          (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"),
-                                          20):
-                numeros = re.findall(r"\[(\d+)]", mensagem_texto)
-                time.sleep(1)
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                if numeros:
-                    numero = int(numeros[0])
+            if mensagem_elem:
+                mensagem_texto = mensagem_elem.text
+
+                if re.search(r"\[\d+\]", mensagem_texto):
+                    numero = int(re.search(r"\[(\d+)]", mensagem_texto).group(1))
                     print(f"Número encontrado: {numero}")
+                    ok.click()
                     return numero
+
+                elif 'MMI inválido' in mensagem_texto:
+                    ok.click()
+                    raise RuntimeError('Número cancelado')
+
+                elif 'UNKNOWN APPLICATION' in mensagem_texto:
+                    ok.click()
+                    raise RuntimeError('Chip da TIM não identificado')
+
                 else:
-                    raise ValueError("Número não encontrado na mensagem.")
-            elif mensagem_texto == 'Problema de conexão ou código MMI inválido.':
-                print('Número cancelado')
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                raise RuntimeError('Número cancelado')
-            elif mensagem_texto == 'UNKNOWN APPLICATION':
-                print('Chip da TIM não identificado')
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                raise RuntimeError('Chip da TIM não identificado')
+                    ok.click()
+                    raise RuntimeError(f"Mensagem inesperada: {mensagem_texto}")
             else:
-                print(f"Mensagem inesperada: {mensagem_texto}")
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                print(f"[pegarNumero] Erro: {mensagem_texto}")
-
-
+                raise RuntimeError('Nenhuma mensagem retornada pelo USSD')
         except Exception as e:
-            raise e
+            print(f"[pegar_numero_chip2] Exceção inesperada: {e}")
+            raise
 
     def aceitar_termos(self):
         try:
@@ -149,7 +147,7 @@ class WaBussinesPage:
         try:
 
             appMensagem = esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                                 '//android.widget.TextView[@resource-id="com.samsung.android.messaging:id/text_content" and @text="⁨<#> Codigo do WhatsApp Business: 490-421 Nao compartilhe o codigo com ninguem rJbA/XP1K+V⁩"]'))
+                                                                 '//android.widget.TextView[@resource-id="com.samsung.android.messaging:id/text_content" and @text="⁨<#> Codigo do WhatsApp Business:"]'))
             appMensagem.click()
 
             mensagem = self.driver.find_elements(By.XPATH,
@@ -166,7 +164,7 @@ class WaBussinesPage:
             print('[pegarCodigoSms] Nenhuma mensagem encontrada.')
             return None
         except Exception as e:
-            print(f"[pegarCodigoSms] Erro: {e}")
+            print(f"[pegarCodigoSms] Erro: e")
             return None
 
     def voltarWhatsapp(self):
