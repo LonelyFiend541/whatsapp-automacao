@@ -135,7 +135,7 @@ def rodar_automacao_whatsapp(driver):
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
             print(f'O numero {numero} esta: {status}')
-            table.salvar_numeros(numero, status)
+            #table.salvar_numeros(numero, status)
             return
 
         if whatsapp.abrirAppMensagens():

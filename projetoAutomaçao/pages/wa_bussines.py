@@ -5,6 +5,7 @@ import time
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from until.utilitys import *
+from until.utilitys import esta_ativo_por_xpath
 from until.waits import *
 
 class WaBussinesPage:
@@ -68,6 +69,14 @@ class WaBussinesPage:
         except:
             print("[aceitar_termos] Erro: Não aceitou os termos")
             return False
+
+    def usar_outro_chip(self):
+        try:
+            outro_chip = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/use_a_different_number"), 7)
+            outro_chip.click()
+        except:
+            print("nao usou o mesmo numero")
+            pass
 
     def registrar_numero(self, numero):
         try:
@@ -150,7 +159,7 @@ class WaBussinesPage:
         try:
 
             appMensagem = esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                                 '//android.widget.TextView[@resource-id="com.samsung.android.messaging:id/text_content" and @text="⁨<#> Codigo do WhatsApp Business:"]'))
+                                                                 '//android.widget.TextView[@text="<#> Codigo do WhatsApp Business:"]'))
             appMensagem.click()
 
             mensagem = self.driver.find_elements(By.XPATH,
@@ -210,12 +219,19 @@ class WaBussinesPage:
 
     def selecionar_empresa(self):
         try:
-            categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
-            categoria.click()
+            empresa = esperar_elemento_visivel(self.driver, (By.XPATH,'//android.widget.TextView[@text="Selecionar a categoria da sua empresa"]'))
+            xpath_botao_outros = '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]'
+            ativo = esta_ativo_por_xpath(self.driver, xpath_botao_outros)
+            if not ativo:
+                categoria = esperar_elemento_visivel(self.driver,(By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
+                categoria.click()
+
             avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
             avancar.click()
-        except:
-            print(f"[selecionar_empresa] Erro: Não selecionou a empresa")
+            return True
+
+        except Exception as e:
+            print(f"[selecionar_empresa] Erro: Não selecionou a empresa -> {e}")
             return False
 
     def horario_de_atendimento(self):

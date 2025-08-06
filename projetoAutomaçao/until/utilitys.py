@@ -1,10 +1,12 @@
 # utils/utilitys.py
+from selenium.webdriver.common.by import By
 import subprocess
 import time
 from functools import wraps
 from typing import Callable, Any
 import psutil
 import drivers.drivers_whatsapp_bussines
+from until.waits import esperar_elemento_visivel
 
 udids = drivers.drivers_whatsapp_bussines.pegar_udids()
 
@@ -67,3 +69,16 @@ def otimizar_app(udids):
             print(f"Aparelho {udid} otimizado.")
         except subprocess.CalledProcessError as e:
             print(f"[ERRO] Falha ao otimizar {udid}: {e}")
+
+def esta_ativo_por_xpath(driver, xpath):
+    """
+    Verifica se um elemento está marcado como ativo (checked="true") com base no XPath.
+    """
+    try:
+        elemento = esperar_elemento_visivel(driver, (By.XPATH, xpath))
+        checked = elemento.get_attribute("checked")
+        print(checked)
+        return checked == "true"
+    except Exception as e:
+        print(f"[esta_ativo_por_xpath] Erro ao verificar estado do elemento: {e}")
+        return False

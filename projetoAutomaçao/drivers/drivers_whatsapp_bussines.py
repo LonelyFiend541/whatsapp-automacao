@@ -90,6 +90,7 @@ def rodar_automacao_whatsapp_bussines(driver):
         print(f"📱 Iniciando automação para: {udid}")
         numero = whatsappbussines.pegar_numero_chip2(udid)
         whatsappbussines.aceitar_termos()
+        whatsappbussines.usar_outro_chip()
         whatsappbussines.registrar_numero(numero)
         whatsappbussines.confirmar_chip()
         boolean, status = executar_paralelo(
@@ -101,7 +102,7 @@ def rodar_automacao_whatsapp_bussines(driver):
         )
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
-            table.salvar_numeros(numero, status)
+            #table.salvar_numeros(numero, status)
             return
         if whatsappbussines.abrir_app_mensagens():
             codigo = whatsappbussines.pegarCodigoSms()

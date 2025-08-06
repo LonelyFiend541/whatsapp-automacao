@@ -199,7 +199,7 @@ class WhatsAppPage:
 
     def pegarCodigoSms(self):
         try:
-            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@resource-id="com.samsung.android.messaging:id/text_content" and @text="⁨<#> Codigo do WhatsApp:'))
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Codigo do WhatsApp:')).click()
             esperar_elemento_visivel(self.driver,
                                      (By.XPATH, "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]"))
             mensagens = self.driver.find_elements(By.XPATH,
@@ -211,11 +211,12 @@ class WhatsAppPage:
                 resultado = re.search(padrao, codigoCompleto)
                 codigo = resultado.group(1) + resultado.group(2)
                 self.driver.terminate_app("com.samsung.android.messaging")
-                print('pegou o codigo')
+                print(f'pegou o codigo {codigo}')
                 return codigo
             print('[pegarCodigoSms] Nenhuma mensagem encontrada.')
             return None
         except:
+            self.driver.terminate_app("com.samsung.android.messaging")
             print(f"[pegarCodigoSms] Não pegou o codigo")
             return None
 
@@ -242,7 +243,7 @@ class WhatsAppPage:
             print('voltou')
             return True
         except Exception as e:
-            print(f"[voltarWhatsapp] Erro: e")
+            print(f"[voltarWhatsapp] Erro: {e}")
             return False
 
     def inserir_codigo_sms(self, codigo):

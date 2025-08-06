@@ -1,103 +1,44 @@
-import unittest
-from until.waits import *
-from drivers.drivers_factory import *
-from pages.whatsapp_page import *
+# test/test_registro_whatsapp.py
+
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+
+import pages.wa_bussines
+from until.utilitys import esta_ativo_por_xpath
+from pages.wa_bussines import *  # ajuste o caminho se necessário
+from until.waits import esperar_elemento_visivel
+import time
 
 
-class TestWhatsAppRegistro(unittest.TestCase):
+def iniciar_driver():
+    options = UiAutomator2Options()
+    options.set_capability("platformName", "Android")
+    options.set_capability("deviceName", "Android Emulator")
+    options.set_capability("appPackage", "com.whatsapp.w4b")
+    options.set_capability("appActivity", "com.whatsapp.HomeActivity")
+    options.set_capability("automationName", "UiAutomator2")
+    options.set_capability("noReset", True)       # já logado
+    options.set_capability("autoLaunch", False)   # não abrir o app (já deve estar na tela)
+
+    driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", options=options)
+    return driver
 
 
-    def test_registrar_novo_numero(self):
-        try:
-            appium_server()
-            udid = pegar_udid()
-            driver = criar_driver(porta, udid)
+def test_selecionar_empresa():
+    driver = iniciar_driver()
 
-            whatsapp = WhatsAppPage(driver)
+    try:
+        print("⏳ Testando seleção de empresa...")
 
-            numero = whatsapp.pegarNumeroChip1(udid)
-            whatsapp.abrirWhatsapp()
-            whatsapp.selecionar_linguagem()
-            whatsapp.clicar_prosseguir()
-            whatsapp.inserir_numero(numero)
-            whatsapp.confirmarNumero()
-            executar_paralelo(
-                whatsapp.verificarBanido,
-                whatsapp.verificarAnalise,
-                whatsapp.pedirAnalise,
-                whatsapp.verificarChip
-            )
-            if whatsapp.abrirAppMensagens():
-                codigo = whatsapp.pegarCodigoSms()
-                whatsapp.voltarWhatsapp()
-                whatsapp.inserir_codigo_sms(codigo)
-                whatsapp.concluir_perfil()
-            whatsapp.aceitarPermissao()
-            whatsapp.colocarNome()
-            whatsapp.finalizarPerfil()
+        # Aguarde a tela estar pronta, se necessário
+        time.sleep(2)
 
+        registro = pages.wa_bussines.WaBussinesPage(driver)
+        registro.colocar_nome()
+        resultado = registro.selecionar_empresa()
 
+        assert resultado is True, "❌ Falha ao selecionar empresa!"
+        print("✅ Teste passou: Empresa selecionada com sucesso.")
 
-
-        except ChipBanidoException as e:
-            print(f"⚠️ Teste encerrado: {e}")
-            self.skipTest("Número banido – teste ignorado.")
-
-        except ChipEmAnaliseException as e:
-            print(f"⚠️ Teste encerrado: {e}")
-            self.skipTest("Número em análise – teste ignorado.")
-
-        except Exception as e:
-
-            self.fail(f"❌ Erro inesperado: {e}")
-
-    def test_registrar_mult(self):
-        try:
-            appium_server()
-            udid = pegar_udids()
-            porta_livre()
-            iniciar_appium(porta_livre())
-
-            driver = criar_driver(porta_livre(), udid)
-
-            whatsapp = WhatsAppPage(driver)
-
-            numero = whatsapp.pegarNumeroChip1(udid[0])
-            whatsapp.abrirWhatsapp()
-            whatsapp.selecionar_linguagem()
-            whatsapp.clicar_prosseguir()
-            whatsapp.inserir_numero(numero)
-            whatsapp.confirmarNumero()
-            executar_paralelo(
-                whatsapp.verificarBanido,
-                whatsapp.verificarAnalise,
-                whatsapp.pedirAnalise,
-                whatsapp.verificarChip
-            )
-            if whatsapp.abrirAppMensagens():
-                codigo = whatsapp.pegarCodigoSms()
-                whatsapp.voltarWhatsapp()
-                whatsapp.inserir_codigo_sms(codigo)
-                whatsapp.concluir_perfil()
-            whatsapp.aceitarPermissao()
-            whatsapp.colocarNome()
-            whatsapp.finalizarPerfil()
-
-
-
-
-        except ChipBanidoException as e:
-            print(f"⚠️ Teste encerrado: {e}")
-            self.skipTest("Número banido – teste ignorado.")
-
-        except ChipEmAnaliseException as e:
-            print(f"⚠️ Teste encerrado: {e}")
-            self.skipTest("Número em análise – teste ignorado.")
-
-        except Exception as e:
-
-            self.fail(f"❌ Erro inesperado: {e}")
-
-if __name__ == '__main__':
-    unittest.main()
-
+    finally:
+        driver.quit()
