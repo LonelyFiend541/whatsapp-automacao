@@ -1,5 +1,6 @@
 import re
 import subprocess
+import time
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -26,45 +27,43 @@ class WhatsAppPage:
         try:
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             try:
-                escolherChip = esperar_elemento_visivel(self.driver, (By.ID, "com.samsung.android.incallui:id/title"),
-                                                        10)
+                escolherChip = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Selecionar o chip"]'))
                 if escolherChip:
-                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                                   '//android.widget.TextView[@resource-id="com.samsung.android.incallui:id/account_label" and @text="SIM 1"]'),
-                                                     10)
+                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH,'//android.widget.TextView[@text="SIM 1"]'))
                     chip1.click()
             except:
                 pass
-            mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"), 10)
-            mensagem_texto = mensagem_elem.text if mensagem_elem else ""
-            if verificar_elemento_visivel(self.driver,
-                                          (By.XPATH, "//android.widget.TextView[contains(@text, 'Recarga Facil')]"),
-                                          20):
-                numeros = re.findall(r"\[(\d+)]", mensagem_texto)
-                time.sleep(0.5)
-                if numeros:
-                    numero = int(numeros[0])
+            ok = esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1'))
+            mensagem_elem = esperar_elemento_visivel(self.driver, (By.ID, "android:id/message"), 20)
+            if mensagem_elem:
+                mensagem_texto = mensagem_elem.text
+
+                if re.search(r"\[\d+\]", mensagem_texto):
+                    numero = int(re.search(r"\[(\d+)]", mensagem_texto).group(1))
                     print(f"Número encontrado: {numero}")
-                    esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
+                    ok.click()
                     return numero
+
+                elif 'MMI inválido' in mensagem_texto:
+                    ok.click()
+                    raise RuntimeError('Número cancelado')
+
+                elif 'UNKNOWN APPLICATION' in mensagem_texto:
+                    ok.click()
+                    raise RuntimeError('Chip da TIM não identificado')
+
                 else:
-                    raise ValueError("Número não encontrado na mensagem.")
-            elif mensagem_texto == 'Problema de conexão ou código MMI inválido.':
-                print('Número cancelado')
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                raise RuntimeError('Número cancelado')
-            elif mensagem_texto == 'UNKNOWN APPLICATION':
-                print('Chip da TIM não identificado')
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                raise RuntimeError('Chip da TIM não identificado')
+                    ok.click()
+                    raise RuntimeError(f"Mensagem inesperada: {mensagem_texto}")
             else:
-                print(f"Mensagem inesperada: {mensagem_texto}")
-                esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button1')).click()
-                print(f"[pegarNumero] Erro: {mensagem_texto}")
+                raise RuntimeError('Nenhuma mensagem retornada pelo USSD')
+        except Exception as e:
+            print(f"[pegar_numero_chip1] Exceção inesperada: {e}")
+            raise
 
         except Exception as e:
 
-            print(f"[pegarNumeroChip1] Erro: {e}")
+            print(f"[pegarNumeroChip1] Falha em pegar numero")
 
             raise
 
@@ -147,7 +146,6 @@ class WhatsAppPage:
             return False, None
             pass
 
-
     def verificarAnalise(self, numero):
         try:
             analise = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/action_button'))
@@ -158,7 +156,6 @@ class WhatsAppPage:
         except:
             return False, None
             pass
-
 
     def verificarChip(self, numero):
         try:
@@ -187,7 +184,6 @@ class WhatsAppPage:
 
             return False
 
-
     def abrirAppMensagens(self):
         try:
             campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input"))
@@ -198,11 +194,9 @@ class WhatsAppPage:
             print(f"[abrirAppMensagens] Erro: Não Abriu o App De Mensagem ")
             return False
 
-
     def pegarCodigoSms(self):
         try:
-            esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                   '(//android.widget.LinearLayout[@resource-id="com.samsung.android.messaging:id/card_view_sub_layout"])[1]')).click()
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@resource-id="com.samsung.android.messaging:id/text_content" and @text="⁨<#> Codigo do WhatsApp:'))
             esperar_elemento_visivel(self.driver,
                                      (By.XPATH, "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]"))
             mensagens = self.driver.find_elements(By.XPATH,
@@ -218,10 +212,9 @@ class WhatsAppPage:
                 return codigo
             print('[pegarCodigoSms] Nenhuma mensagem encontrada.')
             return None
-        except Exception as e:
-            print(f"[pegarCodigoSms] Erro: {e}")
+        except:
+            print(f"[pegarCodigoSms] Não pegou o codigo")
             return None
-
 
     def enviar_dados_para_api(self, udid):
         try:
@@ -239,7 +232,6 @@ class WhatsAppPage:
             print(f"[enviar_dados_para_api] Erro: {e}")
             return False
 
-
     def voltarWhatsapp(self):
         try:
             self.driver.activate_app("com.whatsapp")
@@ -247,19 +239,17 @@ class WhatsAppPage:
             print('voltou')
             return True
         except Exception as e:
-            print(f"[voltarWhatsapp] Erro: {e}")
+            print(f"[voltarWhatsapp] Erro: e")
             return False
-
 
     def inserir_codigo_sms(self, codigo):
         try:
             esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input")).send_keys(codigo)
             print('colocou o codigo')
             return True
-        except Exception as e:
-            print(f"[inserir_codigo_sms] Erro: {e}")
+        except:
+            print(f"[inserir_codigo_sms] Não inseriu o codigo")
             return False
-
 
     def concluir_perfil(self):
         try:
@@ -287,7 +277,6 @@ class WhatsAppPage:
 
             return False
 
-
     def aceitarPermissao(self):
         try:
             esperar_elemento_visivel(self.driver, (By.ID, "android:id/button2")).click()
@@ -296,7 +285,6 @@ class WhatsAppPage:
         except Exception as e:
             print(f"[aceitarPermissao] Erro: Não Aceitou as Permissoes")
             return False
-
 
     def colocarNome(self):
         try:
@@ -307,7 +295,6 @@ class WhatsAppPage:
         except:
             print(f"[colocarNome] Erro: Não Colocou o Nome")
             return False
-
 
     def finalizarPerfil(self):
         try:

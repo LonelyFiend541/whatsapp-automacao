@@ -1,13 +1,12 @@
 import subprocess
 import time
 import socket
-from xmlrpc.client import boolean
-
 from appium.webdriver.appium_service import AppiumService
 from appium.options.android import UiAutomator2Options
 from appium import webdriver
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pages.wa_bussines import *
+from table.tabela_numero import *
 
 
 def pegar_udids():
@@ -92,7 +91,7 @@ def rodar_automacao_whatsapp_bussines(driver):
         numero = whatsappbussines.pegar_numero_chip2(udid)
         whatsappbussines.aceitar_termos()
         whatsappbussines.registrar_numero(numero)
-        time.sleep(1)
+        whatsappbussines.confirmar_chip()
         boolean, status = executar_paralelo(
 
             (whatsappbussines.verificar_banido, (numero, ), {}),
@@ -102,13 +101,13 @@ def rodar_automacao_whatsapp_bussines(driver):
         )
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
-            print(status)
+            table.salvar_numeros(numero, status)
             return
-        whatsappbussines.confirmar_chip()
         if whatsappbussines.abrir_app_mensagens():
             codigo = whatsappbussines.pegarCodigoSms()
             whatsappbussines.colocar_codigo(codigo)
-        whatsappbussines.negar_backup()
+        if whatsappbussines.negar_backup():
+            table.salvar_numeros(numero, status)
         whatsappbussines.colocar_nome()
         whatsappbussines.selecionar_empresa()
         whatsappbussines.horario_de_atendimento()
