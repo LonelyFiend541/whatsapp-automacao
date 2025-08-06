@@ -13,7 +13,7 @@ class WaBussinesPage:
         self.driver = driver
 
     # Nota: Este mét0do utiliza o decorador @retry para tentar novamente até 3 vezes em caso de falha, com 1 segundos de espera entre as tentativas.
-    @retry(max_tentativas=3, delay=1)
+    #@retry(max_tentativas=3, delay=1)
     def pegar_numero_chip2(self, udid):
         """
         Tenta obter o número do chip via discador Samsung.
@@ -23,7 +23,10 @@ class WaBussinesPage:
         try:
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             try:
-                escolher_chip = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Selecionar o chip"]'), 20)
+                escolher_chip = esperar_um_dos_elementos_visiveis(self.driver, (
+                    (By.ID, 'com.samsung.android.incallui:id/title'),
+                    (By.ID, 'android:id/alertTitle'),))
+
                 if escolher_chip:
                     chip2 = esperar_elemento_visivel(self.driver, (By.XPATH,
                                                                    '//android.widget.TextView[@text="SIM 2"]'))
@@ -205,7 +208,6 @@ class WaBussinesPage:
             print(f"[colocar_nome] Erro: Não colocou o nome")
             return False
 
-    @retry(max_tentativas=2, delay=2)
     def selecionar_empresa(self):
         try:
             categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
@@ -216,7 +218,6 @@ class WaBussinesPage:
             print(f"[selecionar_empresa] Erro: Não selecionou a empresa")
             return False
 
-    @retry(max_tentativas=2, delay=2)
     def horario_de_atendimento(self):
         try:
             horario = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[2]/android.widget.RadioButton'))

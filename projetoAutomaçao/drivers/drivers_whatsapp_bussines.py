@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pages.wa_bussines import *
 from table.tabela_numero import *
 
-
+# 🔌 Busca os dispositivos conectados via ADB
 def pegar_udids():
     result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
     lines = result.stdout.strip().split('\n')[1:]
@@ -106,8 +106,8 @@ def rodar_automacao_whatsapp_bussines(driver):
         if whatsappbussines.abrir_app_mensagens():
             codigo = whatsappbussines.pegarCodigoSms()
             whatsappbussines.colocar_codigo(codigo)
-        if whatsappbussines.negar_backup():
-            table.salvar_numeros(numero, status)
+        whatsappbussines.negar_backup()
+        #table.salvar_numeros(numero, status)
         whatsappbussines.colocar_nome()
         whatsappbussines.selecionar_empresa()
         whatsappbussines.horario_de_atendimento()

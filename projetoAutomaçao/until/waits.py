@@ -1,10 +1,13 @@
 import threading
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC  # ✅ correto
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from selenium.common.exceptions import TimeoutException
-
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.remote.webdriver import WebDriver
+from typing import Tuple
 
 # ...existing code...
 def clicar_elemento(self, by, value, timeout=10):
@@ -23,6 +26,42 @@ def texto_elemento(self, by, value, timeout=10):
         print(f"Erro ao obter texto do elemento {value}: {e}")
         return ""
 # ...existing code...
+
+def esperar_um_dos_elementos_visiveis(
+    driver: WebDriver,
+    locators: Tuple[Tuple[By, str], ...],
+    timeout: int = 10
+):
+    """
+    Aguarda até que pelo menos um dos elementos fornecidos fique visível.
+
+    :param driver: Instância do WebDriver
+    :param locators: Lista de tuplas (By, valor) com os elementos possíveis
+    :param timeout: Tempo máximo de espera (em segundos)
+    :return: O primeiro WebElement visível encontrado
+    :raises TimeoutException: Se nenhum dos elementos estiver visível no tempo limite
+    """
+    try:
+        wait = WebDriverWait(driver, timeout)
+
+        def qualquer_visivel(driver):
+            for locator in locators:
+                try:
+                    el = driver.find_element(*locator)
+                    if el.is_displayed():
+                        return el
+                except Exception:
+                    continue
+            return False
+
+        return wait.until(qualquer_visivel)
+
+    except TimeoutException:
+        print(f"⏰ Nenhum dos elementos {locators} ficou visível após {timeout}s.")
+        raise
+    except WebDriverException as e:
+        print(f"🛑 Erro de comunicação com o driver: {e}")
+        raise
 
 def esperar_elemento_visivel(driver: object, locator: object, timeout: object = 10):
     try:

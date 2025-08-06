@@ -3,7 +3,7 @@ from threading import Thread
 from tkinter.scrolledtext import ScrolledText
 from drivers.drivers_whatsapp import whatsapp, pegar_udids
 from drivers.drivers_whatsapp_bussines import bussines
-from until.utilitys import encerrar_appium
+from until.utilitys import *
 from wireless.wireless import *
 import sys
 # Lista de serviços de drivers (caso necessário)
@@ -67,6 +67,10 @@ def encerrar_serv():
     label.config(text="ENCERRAR")
     Thread(target=encerrar_appium).start()
 
+def otimizar_cel():
+    label.config(text="OTIMIZAR")
+    Thread(target=otimizar_app, args=(udids,)).start()
+
 # === Label principal ===
 label = tk.Label(
     container,
@@ -88,10 +92,13 @@ BTverificar = tk.Button(container, text="VERIFICAR", command=verificarsf, **apar
 BTverificar.grid(row=3, column=1, padx=10, pady=5)
 
 BTlimpar = tk.Button(container, text="LIMPAR", command=limpar, **aparencia_botao)
-BTlimpar.grid(row=4, column=0, padx=10, pady=(10, 5))
+BTlimpar.grid(row=4, column=0, padx=10, pady=5)
 
 BTencerrar = tk.Button(container, text="ENCERRAR", command=encerrar_serv, **aparencia_botao)
-BTencerrar.grid(row=4, column=1, padx=10, pady=(10, 5))
+BTencerrar.grid(row=4, column=1, padx=10, pady=5)
+
+BTencerrar = tk.Button(container, text="OTIMIZAR", command=otimizar_cel, **aparencia_botao)
+BTencerrar.grid(row=4, column=2, padx=10, pady=5)
 
 
 # === Área de log ===

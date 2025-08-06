@@ -1,10 +1,22 @@
 # utils/utilitys.py
+import subprocess
 import time
 from functools import wraps
+from typing import Callable, Any
 import psutil
+import drivers.drivers_whatsapp_bussines
 
+udids = drivers.drivers_whatsapp_bussines.pegar_udids()
 
-def retry(max_tentativas=3, delay=2, exceptions=(Exception,)):
+def retry(max_tentativas: int = 3, delay: int = 2, exceptions: tuple = (Exception,)) -> Callable:
+    """
+    Decorador para repetir a execução de uma função em caso de exceção.
+
+    :param max_tentativas: Número máximo de tentativas
+    :param delay: Tempo (em segundos) entre tentativas
+    :param exceptions: Tupla de exceções que devem ser tratadas para retry
+    :return: Resultado da função ou None
+    """
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -16,6 +28,7 @@ def retry(max_tentativas=3, delay=2, exceptions=(Exception,)):
                     if tentativa == max_tentativas:
                         raise
                     time.sleep(delay)
+            return None
         return wrapper
     return decorator
 
@@ -35,4 +48,22 @@ def encerrar_appium():
     if not appium_encontrado:
         print('Nenhum processo appium foi encontrado em execução')
 
+def otimizar_app(udids):
+    """
+    Otimiza o desempenho do dispositivo Android desativando animações e fechando apps em segundo plano.
 
+    :param udids: Lista de UDIDs dos dispositivos conectados
+    """
+    for udid in udids:
+        try:
+            comandos = [
+                f"adb -s {udid} shell settings put global animator_duration_scale 0",
+                f"adb -s {udid} shell settings put global transition_animation_scale 0",
+                f"adb -s {udid} shell settings put global window_animation_scale 0",
+                f"adb -s {udid} shell am kill-all"
+            ]
+            for cmd in comandos:
+                subprocess.run(cmd.split(), check=True)
+            print(f"Aparelho {udid} otimizado.")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERRO] Falha ao otimizar {udid}: {e}")

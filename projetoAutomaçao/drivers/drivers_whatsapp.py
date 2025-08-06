@@ -144,8 +144,8 @@ def rodar_automacao_whatsapp(driver):
             whatsapp.voltarWhatsapp()
             whatsapp.inserir_codigo_sms(codigo)
             whatsapp.concluir_perfil()
-        if whatsapp.aceitarPermissao():
-            table.salvar_numeros(numero, status)
+        whatsapp.aceitarPermissao()
+            #table.salvar_numeros(numero, status)
         whatsapp.colocarNome()
         whatsapp.finalizarPerfil()
 

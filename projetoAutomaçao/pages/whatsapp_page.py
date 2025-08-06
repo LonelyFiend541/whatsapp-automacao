@@ -27,8 +27,11 @@ class WhatsAppPage:
         try:
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             try:
-                escolherChip = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Selecionar o chip"]'))
-                if escolherChip:
+                escolher_chip = esperar_um_dos_elementos_visiveis(self.driver,(
+                (By.ID, 'com.samsung.android.incallui:id/title'),
+                (By.ID, 'android:id/alertTitle'),))
+
+                if escolher_chip:
                     chip1 = esperar_elemento_visivel(self.driver, (By.XPATH,'//android.widget.TextView[@text="SIM 1"]'))
                     chip1.click()
             except:
@@ -38,7 +41,7 @@ class WhatsAppPage:
             if mensagem_elem:
                 mensagem_texto = mensagem_elem.text
 
-                if re.search(r"\[\d+\]", mensagem_texto):
+                if re.search(r"\[\d+]", mensagem_texto):
                     numero = int(re.search(r"\[(\d+)]", mensagem_texto).group(1))
                     print(f"Número encontrado: {numero}")
                     ok.click()

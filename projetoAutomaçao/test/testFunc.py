@@ -314,15 +314,7 @@ def apagar_app(app):
         resultado = subprocess.run(comando.split(), capture_output=True)
         print(f"[REMOVER] {app}: {resultado.stdout.decode('utf-8').strip()}")
 
-def otimizar_app():
-	off_animacao = f"adb shell settings put global animator_duration_scale 0"
-	off_trasicao = f"adb shell settings put global transition_animation_scale 0"
-	off_animacao_janela = f"adb shell settings put global window_animation_scale 0"
-	fechar_segundo_plano = f"adb shell am kill-all"
-	subprocess.run(off_animacao.split())
-	subprocess.run(off_trasicao.split())
-	subprocess.run(off_animacao_janela.split())
-	subprocess.run(fechar_segundo_plano.split())
+
 
 def main():
 	otimizar_app()
