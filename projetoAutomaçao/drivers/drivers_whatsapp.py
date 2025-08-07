@@ -1,16 +1,10 @@
-import subprocess
-import time
-import socket
-from appium.webdriver.appium_service import AppiumService
-from appium.options.android import UiAutomator2Options
-from appium import webdriver
-from concurrent.futures import *
-from pages.whatsapp_page import *
-from table.tabela_numero import *
-import sys
 import os
+import socket
+import sys
 
-from integration.api import enviar_para_api
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.appium_service import AppiumService
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -24,7 +18,8 @@ def pegar_udids():
     result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
     lines = result.stdout.strip().split('\n')[1:]
     udids = [line.split('\t')[0] for line in lines if 'device' in line]
-    print(f"📱 Dispositivos conectados: {udids}")
+    qtd= len(udids)
+    print(f"📱 Dispositivos conectados {qtd}: {udids}")
     return udids
 
 def porta_livre(porta_inicial=4723):
@@ -141,7 +136,7 @@ def rodar_automacao_whatsapp(driver):
         if whatsapp.abrirAppMensagens():
             codigo = whatsapp.pegarCodigoSms()
             #enviar_para_api(numero, codigo)
-            whatsapp.voltarWhatsapp()
+            #whatsapp.voltarWhatsapp()
             whatsapp.inserir_codigo_sms(codigo)
             whatsapp.concluir_perfil()
         whatsapp.aceitarPermissao()

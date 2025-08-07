@@ -1,6 +1,4 @@
 import re
-import subprocess
-import time
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -32,7 +30,8 @@ class WhatsAppPage:
                 (By.ID, 'android:id/alertTitle'),))
 
                 if escolher_chip:
-                    chip1 = esperar_elemento_visivel(self.driver, (By.XPATH,'//android.widget.TextView[@text="SIM 1"]'))
+                    chip1 = esperar_um_dos_elementos_visiveis(self.driver,((By.XPATH,'//android.widget.TextView[@text="SIM 1"]'),
+                    (By.XPATH, '(//android.widget.TextView[@resource-id="com.google.android.dialer:id/label"])[1]')),)
                     chip1.click()
             except:
                 pass

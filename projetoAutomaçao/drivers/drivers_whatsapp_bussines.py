@@ -1,12 +1,11 @@
-import subprocess
-import time
 import socket
-from appium.webdriver.appium_service import AppiumService
-from appium.options.android import UiAutomator2Options
+
 from appium import webdriver
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.appium_service import AppiumService
+from until.utilitys import *
 from pages.wa_bussines import *
-from table.tabela_numero import *
+
 
 # 🔌 Busca os dispositivos conectados via ADB
 def pegar_udids():

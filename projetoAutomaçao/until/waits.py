@@ -1,13 +1,15 @@
 import threading
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC  # ✅ correto
-from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.remote.webdriver import WebDriver
+from typing import Any
 from typing import Tuple
+
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC  # ✅ correto
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 # ...existing code...
 def clicar_elemento(self, by, value, timeout=10):

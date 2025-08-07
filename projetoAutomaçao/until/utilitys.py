@@ -1,10 +1,12 @@
 # utils/utilitys.py
-from selenium.webdriver.common.by import By
 import subprocess
 import time
 from functools import wraps
-from typing import Callable, Any
+from typing import Callable
+
 import psutil
+from selenium.webdriver.common.by import By
+
 import drivers.drivers_whatsapp_bussines
 from until.waits import esperar_elemento_visivel
 

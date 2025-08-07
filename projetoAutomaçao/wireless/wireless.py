@@ -1,5 +1,6 @@
-import subprocess
 import re
+import subprocess
+
 
 def buscar_ips_dispositivos():
     """

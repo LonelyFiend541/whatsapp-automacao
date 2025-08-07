@@ -1,10 +1,7 @@
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
-import time
-from until.waits import *
+from selenium.webdriver.common.by import By
+
 from until.utilitys import *
-import re
-import subprocess
 
 
 class SmartphonePage:

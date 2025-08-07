@@ -1,10 +1,9 @@
-import subprocess
-import time
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-from until.utilitys import retry
+
 from drivers.drivers_whatsapp import *
+
 porta = porta_livre()
 # 🔌 Busca os dispositivos conectados via ADB
 def pegar_udid():

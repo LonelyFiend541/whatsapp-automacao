@@ -1,12 +1,11 @@
 import re
-import subprocess
-import time
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from until.utilitys import *
 from until.utilitys import esta_ativo_por_xpath
+from until.utilitys import *
 from until.waits import *
+
 
 class WaBussinesPage:
 
@@ -26,11 +25,12 @@ class WaBussinesPage:
             try:
                 escolher_chip = esperar_um_dos_elementos_visiveis(self.driver, (
                     (By.ID, 'com.samsung.android.incallui:id/title'),
+                    (By.ID, 'android:id/alertTitle'),
                     (By.ID, 'android:id/alertTitle'),))
 
                 if escolher_chip:
-                    chip2 = esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                                   '//android.widget.TextView[@text="SIM 2"]'))
+                    chip2 = esperar_um_dos_elementos_visiveis(self.driver, ((By.XPATH,'//android.widget.TextView[@text="SIM 2"]'),
+                    (By.XPATH, '(//android.widget.TextView[@resource-id="com.google.android.dialer:id/label"])[2]'), ))
                     chip2.click()
             except:
                 pass
@@ -225,7 +225,7 @@ class WaBussinesPage:
             if not ativo:
                 categoria = esperar_elemento_visivel(self.driver,(By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
                 categoria.click()
-
+            print("empresa selecionada ")
             avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
             avancar.click()
             return True

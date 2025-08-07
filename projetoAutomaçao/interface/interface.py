@@ -1,11 +1,13 @@
+import sys
 import tkinter as tk
 from threading import Thread
 from tkinter.scrolledtext import ScrolledText
+
 from drivers.drivers_whatsapp import whatsapp, pegar_udids
 from drivers.drivers_whatsapp_bussines import bussines
 from until.utilitys import *
 from wireless.wireless import *
-import sys
+
 # Lista de serviços de drivers (caso necessário)
 drivers_services = []
 

@@ -1,13 +1,11 @@
 # test/test_registro_whatsapp.py
 
+import time
+
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 
 import pages.wa_bussines
-from until.utilitys import esta_ativo_por_xpath
-from pages.wa_bussines import *  # ajuste o caminho se necessário
-from until.waits import esperar_elemento_visivel
-import time
 
 
 def iniciar_driver():
@@ -36,6 +34,7 @@ def test_selecionar_empresa():
         registro = pages.wa_bussines.WaBussinesPage(driver)
         registro.colocar_nome()
         resultado = registro.selecionar_empresa()
+        registro.horario_de_atendimento()
 
         assert resultado is True, "❌ Falha ao selecionar empresa!"
         print("✅ Teste passou: Empresa selecionada com sucesso.")
