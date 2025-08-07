@@ -1,9 +1,8 @@
 import requests
 
-def enviar_para_api(numero, codigo):
+def enviar_para_api(numero):
     url = "http://localhost:5000/salvar_dados"  # URL do site
     payload = {
-        "codigo": codigo,
         "numero": numero
     }
 

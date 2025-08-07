@@ -222,11 +222,10 @@ class WhatsAppPage:
     def enviar_dados_para_api(self, udid):
         try:
             numero = self.pegarNumeroChip1(udid)
-            codigo = self.pegarCodigoSms()
 
-            if numero and codigo:
-                enviar_para_api(numero, codigo)
-                print(f"Dados enviados: Número: {numero}, Código: {codigo}")
+            if numero:
+                enviar_para_api(numero)
+                print(f"Dados enviados: Número: {numero}")
                 return True
             else:
                 print("Erro ao capturar número ou código.")
