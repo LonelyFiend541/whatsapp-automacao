@@ -10,7 +10,7 @@ from wireless.wireless import *
 
 # Lista de serviços de drivers (caso necessário)
 drivers_services = []
-
+udids = pegar_udids()
 # === Janela principal ===
 janela = tk.Tk()
 janela.title('Central de Recadastro')

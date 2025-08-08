@@ -1,9 +1,6 @@
 import re
-
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-
-from integration.api import enviar_para_api
 from until.utilitys import *
 from until.waits import *
 

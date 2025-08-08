@@ -6,11 +6,9 @@ from typing import Callable
 
 import psutil
 from selenium.webdriver.common.by import By
-
-import drivers.drivers_whatsapp_bussines
+from drivers.drivers_whatsapp_bussines import pegar_udids
 from until.waits import esperar_elemento_visivel
-
-udids = drivers.drivers_whatsapp_bussines.pegar_udids()
+udids = pegar_udids()
 
 def retry(max_tentativas: int = 3, delay: int = 2, exceptions: tuple = (Exception,)) -> Callable:
     """
@@ -72,6 +70,25 @@ def otimizar_app(udids):
         except subprocess.CalledProcessError as e:
             print(f"[ERRO] Falha ao otimizar {udid}: {e}")
 
+def limpar_whatsapp():
+    for udid in udids:
+        try:
+            comando = f"adb -s {udid} shell pm clear com.whatsapp"
+            subprocess.run(comando.split(), check=True)
+            print(f"Whatsapp do aparelho {udid} Limpo.")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERRO] Falha ao limpar {udid}: {e}")
+
+def limpar_whatsapp_busines():
+    for udid in udids:
+        try:
+            comando = f"adb -s {udid} shell pm clear com.whatsapp.w4b"
+            subprocess.run(comando.split(), check=True)
+            print(f"Whatsapp Business do aparelho {udid} Limpo.")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERRO] Falha ao limpar {udid}: {e}")
+
+
 def esta_ativo_por_xpath(driver, xpath):
     """
     Verifica se um elemento está marcado como ativo (checked="true") com base no XPath.
@@ -84,3 +101,5 @@ def esta_ativo_por_xpath(driver, xpath):
     except Exception as e:
         print(f"[esta_ativo_por_xpath] Erro ao verificar estado do elemento: {e}")
         return False
+
+

@@ -2,7 +2,6 @@ import re
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from until.utilitys import esta_ativo_por_xpath
 from until.utilitys import *
 from until.waits import *
 
@@ -219,11 +218,11 @@ class WaBussinesPage:
 
     def selecionar_empresa(self):
         try:
-            empresa = esperar_elemento_visivel(self.driver, (By.XPATH,'//android.widget.TextView[@text="Selecionar a categoria da sua empresa"]'))
-            xpath_botao_outros = '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]'
-            ativo = esta_ativo_por_xpath(self.driver, xpath_botao_outros)
-            if not ativo:
-                categoria = esperar_elemento_visivel(self.driver,(By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
+            empresa = esperar_elemento_visivel(self.driver, (By.XPATH,'//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]'))
+            xpath_botao_outros = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]'))
+            checked = xpath_botao_outros.get_attribute("checked")
+            if not checked:
+                categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
                 categoria.click()
             print("empresa selecionada ")
             avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
@@ -264,3 +263,20 @@ class WaBussinesPage:
         except:
             print('[formas_encontrar_empresa] Erro: Não concluiu o pulo')
             return False
+
+    def selecionar_menu(self):
+        menu = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/menuitem_overflow'))
+        menu.click()
+        dispositivo = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@resource-id="com.whatsapp.w4b:id/title" and @text="Dispositivos conectados"]'))
+        dispositivo.click()
+
+    def conectar_dispositivo(self):
+        conectar = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/link_device_button'))
+        conectar.click()
+        conectar_numero = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/bottom_banner'))
+        conectar_numero.click()
+
+    def colocar_codigo_instancia(self, codigo_api):
+        campo = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/enter_code_boxes'))
+        codigo_1 = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.EditText[@content-desc="Insira o código de 8 caracteres, campo 1 de 8"]'))
+        codigo_1.send_keys = (codigo_api)
