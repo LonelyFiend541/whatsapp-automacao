@@ -5,6 +5,7 @@ import sys
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
+#from integration.db_integration import salvar_numero
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -114,6 +115,7 @@ def rodar_automacao_whatsapp(driver):
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
         numero = whatsapp.pegarNumeroChip1(udid)
+        salvar_numero(numero)
         whatsapp.selecionar_linguagem()
         whatsapp.clicar_prosseguir()
         whatsapp.inserir_numero(numero)
