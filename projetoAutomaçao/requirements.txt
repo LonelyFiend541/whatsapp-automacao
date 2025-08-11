@@ -25,3 +25,7 @@ wsproto==1.2.0
 psutil~=7.0.0
 requests~=2.32.4
 pandas~=2.3.1
+pages~=0.3
+until~=0.1.2
+drivers~=0.0.5
+pygame~=2.6.1

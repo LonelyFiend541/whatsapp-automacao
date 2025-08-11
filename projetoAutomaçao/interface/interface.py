@@ -1,5 +1,7 @@
+import os
 import sys
 import tkinter as tk
+import pygame
 from threading import Thread
 from tkinter.scrolledtext import ScrolledText
 
@@ -7,6 +9,18 @@ from drivers.drivers_whatsapp import whatsapp, pegar_udids
 from drivers.drivers_whatsapp_bussines import bussines
 from until.utilitys import *
 from wireless.wireless import *
+
+pygame.mixer.init()
+#toca a musica quando inicia a interface
+def tocar_audio():
+    pygame.mixer.music.load("TemaInterface.mp3")
+    pygame.mixer.music.play(-1)
+
+som_path = os.path.join(os.path.dirname(__file__), "SomBotao.mp3")
+som_clique = pygame.mixer.Sound(som_path)
+
+def tocar_clique():
+    som_clique.play()
 
 # Lista de serviços de drivers (caso necessário)
 drivers_services = []
@@ -41,35 +55,42 @@ aparencia_LOG = {
 
 # === Funções de ação dos botões ===
 def executar():
+    som_clique.play()
     label.config(text="WHATSAPP")
     Thread(target=whatsapp).start()  # Corrigido: não chamar diretamente
 
 def executartd():
+    som_clique.play()
     label.config(text="BUSINESS")
     Thread(target=bussines).start()
     # Coloque aqui o que a função deve fazer
 
 def wireless():
+    som_clique.play()
     label.config(text="CONECTANDO 📡")
     Thread(target=wireless).start()
     # Coloque aqui a lógica de conexão wireless
 
 def verificarsf():
+    som_clique.play()
     label.config(text="VERIFICANDO 🔍")
     Thread(target=pegar_udids).start()
     # Lógica de verificação
 
 def limpar():
+    som_clique.play()
     label.config(text="LIMPO 🗑️")
     log_area.configure(state='normal')
     log_area.delete(1.0, tk.END)
     log_area.configure(state='disabled')
 
 def encerrar_serv():
+    som_clique.play()
     label.config(text="ENCERRAR")
     Thread(target=encerrar_appium).start()
 
 def otimizar_cel():
+    som_clique.play()
     label.config(text="OTIMIZAR")
     Thread(target=otimizar_app, args=(udids,)).start()
 
@@ -125,4 +146,5 @@ sys.stdout = TextRedirector(log_area)
 sys.stderr = TextRedirector(log_area)
 
 # === Iniciar interface ===
+janela.after(100, tocar_audio)
 janela.mainloop()
