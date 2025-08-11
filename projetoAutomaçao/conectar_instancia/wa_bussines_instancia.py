@@ -1,12 +1,10 @@
-from drivers.drivers_whatsapp_bussines import *
-from pages.wa_bussines import *
-import socket
-from integration.api import *
-
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-from until.utilitys import *
+from drivers.drivers_whatsapp_bussines import *
+from integration.api import *
+from pages.wa_bussines import *
+
 
 def iniciar_ambiente_para_todos():
     """
@@ -69,10 +67,10 @@ def rodar_conectar_instancia(driver):
         whatsappbussines = WaBussinesPage(driver)
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
-        #numero = whatsappbussines.pegar_numero_chip2(udid)
-        #whatsappbussines.selecionar_menu()
-        #whatsappbussines.conectar_dispositivo()
-        codigo_api = buscar_dados('11954866509')
+        numero = whatsappbussines.pegar_numero_chip2(udid)
+        whatsappbussines.selecionar_menu()
+        whatsappbussines.conectar_dispositivo()
+        codigo_api = get_codigo(numero)
         whatsappbussines.colocar_codigo_instancia(codigo_api)
         print(f"✅ Automação concluída para: {udid}")
 

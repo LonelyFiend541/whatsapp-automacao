@@ -1,64 +1,58 @@
-import requests
 import os
-'''
+import requests
+from dotenv import load_dotenv
 
-def enviar_para_api(numero):
-    url = "http://localhost:5000/salvar_dados"  # URL do site
-    payload = {
-        "numero": numero
-    }
+load_dotenv()
+BASE_URL = "https://api.z-api.io"
+CLIENT_TOKEN = os.getenv('CLIENT_TOKEN')
 
+
+def check_status(instance_id, token):
+    """
+    Consulta o status da instância na Z-API.
+    Retorna o JSON com o status ou None em caso de erro.
+    """
     try:
-        response = requests.post(url, json=payload)
+        headers = {'Client-Token': CLIENT_TOKEN}
+        url = f"{BASE_URL}/instances/{instance_id}/token/{token}/status"
+        response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
-        print(f"Enviado com sucesso: {response.status_code}")
-        return True
+        return response.json()
     except requests.RequestException as e:
-        print(f"Erro ao enviar para a API: {e}")
-        return False
-'''
+        print(f"Erro ao listar instância {instance_id}: {e}")
+        return None
 
 
-import requests
-import os
-
-def buscar_dados(numero) -> str:
-    INSTANCE_ID = os.getenv("ZAPI_INSTANCE", "3DF1EF843EDCA1A466890A1EFCACDE10")
-    TOKEN = os.getenv("ZAPI_TOKEN", "0872ABDCF8B0B9D525965D88")
-    headers = {"Client-Token": "F55751aaa63d246558565321cdf8850f3S"}
-    url = f"https://api.z-api.io/instances/{INSTANCE_ID}/token/{TOKEN}/phone-code/{numero}"
-
+def get_codigo(instance_id, token, phone):
+    """
+    Consulta o código para o número de telefone na instância.
+    Retorna o JSON com o código ou None em caso de erro.
+    """
     try:
-        r = requests.get(url, headers=headers, timeout=5)
-        r.raise_for_status()
-        data = r.json()
-        # Supondo que a resposta tem um campo "code"
-        codigo_api = data.get("code")
-        if codigo_api:
-            return str(codigo_api)
+        headers = {'Client-Token': CLIENT_TOKEN}
+        url = f"{BASE_URL}/instances/{instance_id}/token/{token}/phone-code/{phone}"
+        response = requests.get(url, headers=headers, timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Erro ao consultar código da instância {instance_id}: {e}")
+        return None
+
+
+def carregar_instancias():
+    """
+    Carrega as 10 instâncias do arquivo .env.
+    Retorna uma lista de dicts com 'id' e 'token'.
+    """
+    instances = []
+    for i in range(1, 11):
+        instance_id = os.getenv(f'INSTANCE_ID_{i}')
+        token = os.getenv(f'TOKEN_{i}')
+        if instance_id and token:
+            instances.append({'id': instance_id, 'token': token})
         else:
-            return "Código não encontrado na resposta."
-    except requests.RequestException as e:
-        return f"Erro na requisição: {e}"
-    except ValueError:
-        return "Resposta inválida da API."
-
-
-
-
-def instancia_status ():
-    INSTANCE_ID = os.getenv("ZAPI_INSTANCE", "3DF1EFBED1D391A09A69FA8592F99CB9")
-    TOKEN = os.getenv("ZAPI_TOKEN", "57B0796F36EBCEC9781F3B11")
-    headers = {"Client-Token": "F55751aaa63d246558565321cdf8850f3S"}
-    url = f" https://api.z-api.io/instances/{INSTANCE_ID}/token/{TOKEN}/status"
-    try:
-        r = requests.get(url, headers=headers, timeout=5)
-        r.raise_for_status()
-        print(r.json())
-        return r.json()
-    except requests.RequestException as e:
-        print(f"Erro: {e}")
-
-
-
-print(instancia_status())
+            print(f"Variáveis INSTANCE_ID_{i} ou TOKEN_{i} não definidas no .env")
+    return instances
+instances = carregar_instancias()
+for ins in instances:
+    print(ins)

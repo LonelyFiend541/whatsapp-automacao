@@ -1,10 +1,9 @@
-import socket
-
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-from until.utilitys import *
 from pages.wa_bussines import *
+import subprocess
+
 
 
 # 🔌 Busca os dispositivos conectados via ADB

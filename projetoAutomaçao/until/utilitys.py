@@ -1,16 +1,13 @@
 # utils/utilitys.py
-import subprocess
-import time
 from functools import wraps
-from typing import Callable
-
-import psutil
+import subprocess
 from selenium.webdriver.common.by import By
-from drivers.drivers_whatsapp_bussines import pegar_udids
-from until.waits import esperar_elemento_visivel
-udids = pegar_udids()
+from drivers import drivers_whatsapp_bussines as drivers_wa
+import psutil
 
-def retry(max_tentativas: int = 3, delay: int = 2, exceptions: tuple = (Exception,)) -> Callable:
+udids = drivers_wa.pegar_udids()
+
+def retry(max_tentativas: int = 3, delay: int = 2, exceptions: tuple = (Exception,)) -> callable:
     """
     Decorador para repetir a execução de uma função em caso de exceção.
 

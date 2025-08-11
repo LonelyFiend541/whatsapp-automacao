@@ -1,9 +1,9 @@
 import re
-
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from until.utilitys import *
 from until.waits import *
+import subprocess
+import time
 
 
 class WaBussinesPage:
@@ -224,7 +224,7 @@ class WaBussinesPage:
             if not checked:
                 categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
                 categoria.click()
-            print("empresa selecionada ")
+                print("empresa selecionada ")
             avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
             avancar.click()
             return True
@@ -257,6 +257,8 @@ class WaBussinesPage:
     def formas_encontrar_empresa(self):
         try:
             pular = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Pular"]'))
+            pular.click()
+            time.sleep(1)
             pular.click()
             time.sleep(1)
             pular.click()
