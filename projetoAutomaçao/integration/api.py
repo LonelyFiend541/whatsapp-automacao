@@ -49,10 +49,14 @@ def carregar_instancias():
         instance_id = os.getenv(f'INSTANCE_ID_{i}')
         token = os.getenv(f'TOKEN_{i}')
         if instance_id and token:
-            instances.append({'id': instance_id, 'token': token})
+            instances.append({'numero': {i}, 'id': instance_id, 'token': token})
         else:
             print(f"Variáveis INSTANCE_ID_{i} ou TOKEN_{i} não definidas no .env")
     return instances
+
+
 instances = carregar_instancias()
 for ins in instances:
     print(ins)
+    status = check_status(ins['id'], ins['token'])
+    print(status)
