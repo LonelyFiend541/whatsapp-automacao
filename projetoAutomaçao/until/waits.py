@@ -1,14 +1,17 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
-from typing import Tuple
-
+from typing import Optional, Tuple
+from appium.webdriver.common.appiumby import AppiumBy
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import WebDriverException, NoSuchElementException
+import time
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC  # ✅ correto
-from selenium.webdriver.support.ui import WebDriverWait
+
 
 
 # ...existing code...
@@ -64,6 +67,31 @@ def esperar_um_dos_elementos_visiveis(
     except WebDriverException as e:
         print(f"🛑 Erro de comunicação com o driver: {e}")
         raise
+def existe_um_dos_elementos(
+    driver: WebDriver,
+    locators: Tuple[Tuple[By, str], ...],
+    timeout: int = 10
+) -> Tuple[bool, Optional[WebElement]]:
+    """
+    Retorna (True, elemento) se pelo menos um dos elementos aparecer.
+    Caso contrário, retorna (False, None).
+    """
+    try:
+        def encontrar(d):
+            for loc in locators:
+                try:
+                    el = d.find_element(*loc)
+                    if el.is_displayed():
+                        return el
+                except Exception:
+                    continue
+            return False
+
+        el = WebDriverWait(driver, timeout).until(encontrar)
+        return True, el
+
+    except (TimeoutException, WebDriverException):
+        return False, None
 
 def esperar_elemento_visivel(driver: object, locator: object, timeout: object = 10):
     try:
@@ -143,6 +171,65 @@ def executar_paralelo(*tarefas):
             except Exception as e:
                 print(f"❌ Erro ao executar função paralela: {e}")
     return False, None
+
+def esperar_elemento_scroll(driver, locator, timeout=10, max_scrolls=5) -> Tuple[bool, Optional[object]]:
+    """
+    Espera um elemento ficar visível e rola a tela até encontrá-lo, se necessário.
+
+    :param driver: Instância do driver Appium
+    :param locator: Tupla (By.ID, "id_do_elemento") ou (By.XPATH, "xpath_do_elemento")
+    :param timeout: Tempo máximo de espera por cada tentativa
+    :param max_scrolls: Número máximo de scrolls caso o elemento não esteja visível
+    :return: (True, elemento) se encontrado, (False, None) caso contrário
+    """
+    by, value = locator
+
+    for _ in range(max_scrolls):
+        try:
+            elemento = WebDriverWait(driver, timeout).until(EC.visibility_of_element_located(locator))
+            return True, elemento
+        except (NoSuchElementException, WebDriverException):
+            try:
+                # Scroll para ID usando UiScrollable (Android)
+                if by == AppiumBy.ID:
+                    driver.find_element(
+                        AppiumBy.ANDROID_UIAUTOMATOR,
+                        f'new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().resourceId("{value}"));'
+                    )
+                # Scroll para XPath ou texto
+                elif by == AppiumBy.XPATH:
+                    tamanho = driver.get_window_size()
+                    start_x = tamanho['width'] // 2
+                    start_y = int(tamanho['height'] * 0.8)
+                    end_y = int(tamanho['height'] * 0.2)
+                    driver.swipe(start_x, start_y, start_x, end_y, 800)
+                time.sleep(1)  # aguarda animação
+            except Exception:
+                pass  # ignora erro de scroll e tenta novamente
+
+    # Se não encontrou após max_scrolls, retorna False
+    return False, None
+
+def elemento_esta_visivel(
+    driver: WebDriver,
+    locator: Tuple[By, str],
+    timeout: int = 5
+) -> Tuple[bool, Optional[WebElement]]:
+    """
+    Verifica se o elemento está visível dentro do tempo limite.
+
+    :param driver: Instância do WebDriver.
+    :param locator: Tupla (By, valor) localizando o elemento.
+    :param timeout: Tempo máximo de espera em segundos.
+    :return: (True, elemento) se visível, ou (False, None) caso contrário.
+    """
+    try:
+        el = WebDriverWait(driver, timeout).until(
+            EC.visibility_of_element_located(locator)
+        )
+        return True, el
+    except TimeoutException:
+        return False, None
 
 
 

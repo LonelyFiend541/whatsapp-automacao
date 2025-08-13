@@ -1,11 +1,48 @@
 # utils/utilitys.py
+import json
 from functools import wraps
 import subprocess
 from selenium.webdriver.common.by import By
 from drivers import drivers_whatsapp_bussines as drivers_wa
 import psutil
+import subprocess
+import os
+from until.waits import esperar_elemento_visivel
+import time
+
+# Configura variáveis do Android SDK
+ANDROID_SDK_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "patch"))
+os.environ["ANDROID_HOME"] = ANDROID_SDK_PATH
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tools")
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "cmdline-tools", "latest", "bin")
+ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
 
 udids = drivers_wa.pegar_udids()
+
+# pega o diretório raiz do projeto
+RAIZ_PROJETO = os.path.dirname(os.path.abspath(__file__))
+PASTA = os.path.join(RAIZ_PROJETO, "numeros")
+ARQUIVO = os.path.join(PASTA, "numeros.json")
+
+# cria a pasta se não existir
+os.makedirs(PASTA, exist_ok=True)
+
+# cria o arquivo se não existir
+if not os.path.exists(ARQUIVO):
+    with open(ARQUIVO, "w") as f:
+        json.dump([], f)
+
+def salvar_numero(numero: str):
+    with open(ARQUIVO, "r") as f:
+        numeros = json.load(f)
+    if numero not in numeros:
+        numeros.append(numero)
+    with open(ARQUIVO, "w") as f:
+        json.dump(numeros, f, indent=4)
+
+def ler_numeros():
+    with open(ARQUIVO, "r") as f:
+        return json.load(f)
 
 def retry(max_tentativas: int = 3, delay: int = 2, exceptions: tuple = (Exception,)) -> callable:
     """
@@ -56,10 +93,10 @@ def otimizar_app(udids):
     for udid in udids:
         try:
             comandos = [
-                f"adb -s {udid} shell settings put global animator_duration_scale 0",
-                f"adb -s {udid} shell settings put global transition_animation_scale 0",
-                f"adb -s {udid} shell settings put global window_animation_scale 0",
-                f"adb -s {udid} shell am kill-all"
+                f"{ADB_PATH} -s {udid} shell settings put global animator_duration_scale 0",
+                f"{ADB_PATH} -s {udid} shell settings put global transition_animation_scale 0",
+                f"{ADB_PATH} -s {udid} shell settings put global window_animation_scale 0",
+                f"{ADB_PATH} -s {udid} shell am kill-all"
             ]
             for cmd in comandos:
                 subprocess.run(cmd.split(), check=True)
@@ -67,19 +104,19 @@ def otimizar_app(udids):
         except subprocess.CalledProcessError as e:
             print(f"[ERRO] Falha ao otimizar {udid}: {e}")
 
-def limpar_whatsapp():
+def limpar_whatsapp(udids):
     for udid in udids:
         try:
-            comando = f"adb -s {udid} shell pm clear com.whatsapp"
+            comando = f"{ADB_PATH} -s {udid} shell pm clear com.whatsapp"
             subprocess.run(comando.split(), check=True)
             print(f"Whatsapp do aparelho {udid} Limpo.")
         except subprocess.CalledProcessError as e:
             print(f"[ERRO] Falha ao limpar {udid}: {e}")
 
-def limpar_whatsapp_busines():
+def limpar_whatsapp_busines(udids):
     for udid in udids:
         try:
-            comando = f"adb -s {udid} shell pm clear com.whatsapp.w4b"
+            comando = f"{ADB_PATH} -s {udid} shell pm clear com.whatsapp.w4b"
             subprocess.run(comando.split(), check=True)
             print(f"Whatsapp Business do aparelho {udid} Limpo.")
         except subprocess.CalledProcessError as e:
@@ -98,5 +135,8 @@ def esta_ativo_por_xpath(driver, xpath):
     except Exception as e:
         print(f"[esta_ativo_por_xpath] Erro ao verificar estado do elemento: {e}")
         return False
+
+
+
 
 

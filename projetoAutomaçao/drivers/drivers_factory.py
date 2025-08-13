@@ -4,10 +4,24 @@ from appium.webdriver.appium_service import AppiumService
 
 from drivers.drivers_whatsapp import *
 
+# Configura Android SDK para o Appium achar o adb
+# Configura variáveis do Android SDK
+ANDROID_SDK_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),  # pasta do script atual
+        "..", "patch"
+    )
+)
+
+os.environ["ANDROID_HOME"] = ANDROID_SDK_PATH
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tools")
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "cmdline-tools", "latest", "bin")
+
+ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
 porta = porta_livre()
 # 🔌 Busca os dispositivos conectados via ADB
 def pegar_udid():
-    result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
+    result = subprocess.run([ADB_PATH, 'devices'], capture_output=True, text=True)
     lines = result.stdout.strip().split('\n')[1:]  # Ignora o cabeçalho
     udids = [line.split('\t')[0] for line in lines if '\tdevice' in line]
 

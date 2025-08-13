@@ -4,17 +4,33 @@ import sys
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
+
+import until.utilitys
+from pages.whatsapp_page import *
+from until.waits import *
+from until.utilitys import *
+import subprocess
 #from integration.db_integration import salvar_numero
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-import subprocess
-from pages.whatsapp_page import *
-from until.waits import *
+# Configura Android SDK para o Appium achar o adb
+# Configura variáveis do Android SDK
+ANDROID_SDK_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),  # pasta do script atual
+        "..", "patch"
+    )
+)
 
+os.environ["ANDROID_HOME"] = ANDROID_SDK_PATH
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tools")
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "cmdline-tools", "latest", "bin")
+
+ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
 
 # 🔌 Busca os dispositivos conectados via ADB
 def pegar_udids():
-    result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
+    result = subprocess.run([ADB_PATH, 'devices'], capture_output=True, text=True)
     lines = result.stdout.strip().split('\n')[1:]
     udids = [line.split('\t')[0] for line in lines if 'device' in line]
     qtd= len(udids)
@@ -113,7 +129,7 @@ def rodar_automacao_whatsapp(driver):
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
         numero = whatsapp.pegarNumeroChip1(udid)
-        #salvar_numero(numero)
+        until.utilitys.salvar_numero(numero)
         whatsapp.selecionar_linguagem()
         whatsapp.clicar_prosseguir()
         whatsapp.inserir_numero(numero)
@@ -130,7 +146,6 @@ def rodar_automacao_whatsapp(driver):
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
             print(f'O numero {numero} esta: {status}')
-            #table.salvar_numeros(numero, status)
             return
 
         if whatsapp.abrirAppMensagens():

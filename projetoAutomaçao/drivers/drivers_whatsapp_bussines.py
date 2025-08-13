@@ -1,14 +1,31 @@
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
+
+import until.utilitys
 from pages.wa_bussines import *
+from until.utilitys import *
 import subprocess
+import os
 
+# Configura Android SDK para o Appium achar o adb
+# Configura variáveis do Android SDK
+ANDROID_SDK_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),  # pasta do script atual
+        "..", "patch"
+    )
+)
 
+os.environ["ANDROID_HOME"] = ANDROID_SDK_PATH
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tools")
+os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "cmdline-tools", "latest", "bin")
+
+ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
 
 # 🔌 Busca os dispositivos conectados via ADB
 def pegar_udids():
-    result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
+    result = subprocess.run([ADB_PATH, 'devices'], capture_output=True, text=True)
     lines = result.stdout.strip().split('\n')[1:]
     udids = [line.split('\t')[0] for line in lines if 'device' in line]
     print(f"📱 Dispositivos conectados: {udids}")
@@ -87,6 +104,7 @@ def rodar_automacao_whatsapp_bussines(driver):
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
         numero = whatsappbussines.pegar_numero_chip2(udid)
+        until.utilitys.salvar_numero(numero)
         whatsappbussines.aceitar_termos()
         whatsappbussines.usar_outro_chip()
         whatsappbussines.registrar_numero(numero)
@@ -112,6 +130,7 @@ def rodar_automacao_whatsapp_bussines(driver):
         whatsappbussines.horario_de_atendimento()
         whatsappbussines.foto_perfil()
         whatsappbussines.formas_encontrar_empresa()
+        whatsappbussines.selecionar_descricao()
 
         print(f"✅ Automação concluída para: {udid}")
 

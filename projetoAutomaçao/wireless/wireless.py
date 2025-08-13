@@ -1,5 +1,16 @@
 import re
 import subprocess
+import os
+
+ADB_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),  # pasta do script atual
+        "..",                       # sobe para "projetoAutomaçao"
+        "patch",                    # entra na pasta patch
+        "platform-tools",           # entra na pasta platform-tools
+        "adb.exe"                    # executável adb
+    )
+)
 
 
 def buscar_ips_dispositivos():
@@ -7,7 +18,7 @@ def buscar_ips_dispositivos():
     Busca os IPs dos dispositivos Android conectados via ADB e salva em um arquivo.
     """
     # Busca os dispositivos conectados
-    result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
+    result = subprocess.run([ADB_PATH, 'devices'], capture_output=True, text=True)
     lines = result.stdout.strip().split('\n')[1:]
     udids = [line.split('\t')[0] for line in lines if 'device' in line]
     ips = {}

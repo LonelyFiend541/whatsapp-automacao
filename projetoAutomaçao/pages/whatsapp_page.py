@@ -1,6 +1,7 @@
 import re
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
+from appium.webdriver.common.appiumby import AppiumBy
 from until.utilitys import *
 from until.waits import *
 import subprocess
@@ -197,26 +198,27 @@ class WhatsAppPage:
 
     def pegarCodigoSms(self):
         try:
-            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Codigo do WhatsApp:')).click()
-            esperar_elemento_visivel(self.driver,
-                                     (By.XPATH, "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]"))
-            mensagens = self.driver.find_elements(By.XPATH,
-                                                  "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]")
+            achou, elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp:')]"))
+            elemento.click()
+            mensagens = self.driver.find_elements(
+                AppiumBy.XPATH,
+                '//android.widget.TextView[contains(@text="Codigo do WhatsApp:")]'
+            )
             if mensagens:
                 ultima_mensagem = mensagens[-1]
-                codigoCompleto = ultima_mensagem.get_attribute('content-desc')
+                codigoCompleto = ultima_mensagem.get_attribute('text')
                 padrao = r'(\d+)-(\d+)'
                 resultado = re.search(padrao, codigoCompleto)
                 codigo = resultado.group(1) + resultado.group(2)
-                self.driver.terminate_app("com.samsung.android.messaging")
                 print(f'pegou o codigo {codigo}')
-                return codigo
+                self.driver.terminate_app("com.samsung.android.messaging")
+                return True, codigo
             print('[pegarCodigoSms] Nenhuma mensagem encontrada.')
-            return None
+            return False
         except:
             self.driver.terminate_app("com.samsung.android.messaging")
             print(f"[pegarCodigoSms] Não pegou o codigo")
-            return None
+            return False
 
     def enviar_dados_para_api(self, udid):
         try:

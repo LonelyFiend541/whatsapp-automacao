@@ -1,7 +1,7 @@
 import os
 import sys
 import tkinter as tk
-import pygame
+from appium.webdriver.common.appiumby import AppiumBy
 from threading import Thread
 from tkinter.scrolledtext import ScrolledText
 
@@ -10,21 +10,10 @@ from drivers.drivers_whatsapp_bussines import bussines
 from until.utilitys import *
 from wireless.wireless import *
 
-pygame.mixer.init()
-#toca a musica quando inicia a interface
-def tocar_audio():
-    pygame.mixer.music.load("TemaInterface.mp3")
-    pygame.mixer.music.play(-1)
-
-som_path = os.path.join(os.path.dirname(__file__), "SomBotao.mp3")
-som_clique = pygame.mixer.Sound(som_path)
-
-def tocar_clique():
-    som_clique.play()
 
 # Lista de serviços de drivers (caso necessário)
 drivers_services = []
-udids = pegar_udids()
+
 # === Janela principal ===
 janela = tk.Tk()
 janela.title('Central de Recadastro')
@@ -53,46 +42,64 @@ aparencia_LOG = {
     "font": ("Arial", 20, "italic"),
 }
 
+# == Funcao para pegar udids ==
+
+def pegar_udids_interface():
+    result = subprocess.run([ADB_PATH, 'devices'], capture_output=True, text=True)
+    lines = result.stdout.strip().split('\n')[1:]
+    udids = [line.split('\t')[0] for line in lines if 'device' in line]
+    return udids
+
 # === Funções de ação dos botões ===
 def executar():
-    som_clique.play()
+
     label.config(text="WHATSAPP")
     Thread(target=whatsapp).start()  # Corrigido: não chamar diretamente
 
 def executartd():
-    som_clique.play()
+
     label.config(text="BUSINESS")
     Thread(target=bussines).start()
     # Coloque aqui o que a função deve fazer
 
 def wireless():
-    som_clique.play()
+
     label.config(text="CONECTANDO 📡")
     Thread(target=wireless).start()
     # Coloque aqui a lógica de conexão wireless
 
 def verificarsf():
-    som_clique.play()
+
     label.config(text="VERIFICANDO 🔍")
     Thread(target=pegar_udids).start()
     # Lógica de verificação
 
 def limpar():
-    som_clique.play()
+
     label.config(text="LIMPO 🗑️")
     log_area.configure(state='normal')
     log_area.delete(1.0, tk.END)
     log_area.configure(state='disabled')
 
 def encerrar_serv():
-    som_clique.play()
+
     label.config(text="ENCERRAR")
     Thread(target=encerrar_appium).start()
 
 def otimizar_cel():
-    som_clique.play()
+
     label.config(text="OTIMIZAR")
-    Thread(target=otimizar_app, args=(udids,)).start()
+    Thread(target=otimizar_app, args=(pegar_udids_interface(),)).start()
+
+# WhatsApp normal
+def limpar_whatsapp_ui():
+    label.config(text="Limpar Whatsapp")
+    Thread(target=limpar_whatsapp, args=(pegar_udids_interface(),)).start()
+
+# WhatsApp Business
+def limpar_whatsapp_bussines_ui():
+    label.config(text="Limpar Whatsapp Bussines")
+    Thread(target=limpar_whatsapp_busines, args=(pegar_udids_interface(),)).start()
 
 # === Label principal ===
 label = tk.Label(
@@ -123,6 +130,11 @@ BTencerrar.grid(row=4, column=1, padx=10, pady=5)
 BTencerrar = tk.Button(container, text="OTIMIZAR", command=otimizar_cel, **aparencia_botao)
 BTencerrar.grid(row=4, column=2, padx=10, pady=5)
 
+BTlimparwhatsapp = tk.Button(container, text="Limpar Whatsapp", command=limpar_whatsapp_ui, **aparencia_botao)
+BTlimparwhatsapp.grid(row=3, column=2, padx=10, pady=5)
+
+BTlimparwhatsappBussines = tk.Button(container, text="Limpar Bussines", command=limpar_whatsapp_bussines_ui, **aparencia_botao)
+BTlimparwhatsappBussines.grid(row=2, column=2, padx=10, pady=5)
 
 # === Área de log ===
 log_area = ScrolledText(container, height=10, width=60, state='disabled', bg="#f0f0f0")
@@ -146,5 +158,5 @@ sys.stdout = TextRedirector(log_area)
 sys.stderr = TextRedirector(log_area)
 
 # === Iniciar interface ===
-janela.after(100, tocar_audio)
+
 janela.mainloop()

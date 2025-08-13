@@ -1,5 +1,6 @@
 import re
 from selenium.common.exceptions import TimeoutException
+from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.common.by import By
 from until.waits import *
 import subprocess
@@ -156,13 +157,9 @@ class WaBussinesPage:
 
     def pegarCodigoSms(self):
         try:
-
-            appMensagem = esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                                 '//android.widget.TextView[@text="<#> Codigo do WhatsApp Business:"]'))
-            appMensagem.click()
-
-            mensagem = self.driver.find_elements(By.XPATH,
-                                                 "//android.widget.LinearLayout[contains(@content-desc, 'WhatsApp')]")
+            elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp Business:')]"))
+            elemento.click()
+            mensagem = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, '//android.widget.TextView[@resource-id="com.samsung.android.messaging:id/list_item_text_view" and contains(@text="Codigo do WhatsApp Business:")]'))
             if mensagem:
                 ultima_mensagem = mensagem[-1]
                 codigoCompleto = ultima_mensagem.get_attribute('content-desc')
@@ -209,9 +206,13 @@ class WaBussinesPage:
     def colocar_nome(self):
         try:
             nome = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.EditText'))
-            nome.send_keys("Call Center")
-            continuar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.Button'))
-            continuar.click()
+            if nome.text == "":
+                nome.send_keys("Call Center")
+                continuar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
+                continuar.click()
+            else:
+                continuar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
+                continuar.click()
         except:
             print(f"[colocar_nome] Erro: Não colocou o nome")
             return False
@@ -219,14 +220,28 @@ class WaBussinesPage:
     def selecionar_empresa(self):
         try:
             empresa = esperar_elemento_visivel(self.driver, (By.XPATH,'//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]'))
-            xpath_botao_outros = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]'))
-            checked = xpath_botao_outros.get_attribute("checked")
-            if not checked:
-                categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'))
-                categoria.click()
-                print("empresa selecionada ")
-            avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
-            avancar.click()
+            xpath_botao_outros = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[3]'))
+            checked = xpath_botao_outros.get_attribute("enabled")
+            if checked == "true":
+                avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
+                avancar.click()
+            else:
+                achou, categoria = existe_um_dos_elementos(self.driver, ((By.XPATH, '//android.widget.TextView[@content-desc="Não é uma empresa"]'), (By.XPATH, '//android.widget.TextView[@text="Outras empresas"]'),))
+                #categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[1]'))
+                if achou:
+                    categoria.click()
+                    print("empresa selecionada ")
+                    avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
+                    avancar.click()
+                else:
+                    mais_categoria = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Mais categorias"]'))
+                    mais_categoria.click()
+                    achou, categoria = existe_um_dos_elementos(self.driver, ((By.XPATH,'//android.widget.TextView[@content-desc="Não é uma empresa"]'),
+                                                                             (By.XPATH,'//android.widget.TextView[@text="Outras empresas"]'),))
+                    categoria.click()
+                    avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
+                    avancar.click()
+
             return True
 
         except Exception as e:
@@ -235,20 +250,22 @@ class WaBussinesPage:
 
     def horario_de_atendimento(self):
         try:
-            horario = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]/android.view.View[2]/android.widget.RadioButton'))
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]'))
+            horario = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Sempre aberta"]'))
             horario.click()
             avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
             avancar.click()
-            time.sleep(1)
-            avancar.click()
-            time.sleep(1)
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[1]'))
+            avancar_2 = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
+            avancar_2.click()
         except:
             print("[horario_de_atendimento] Erro: Não concluiu o horário")
             return False
 
     def foto_perfil(self):
         try:
-            avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Adicionar foto do perfil"]'))
+            avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[2]'))
             avancar.click()
         except:
             print("[foto_perfil] Erro: Não avançou na foto de perfil")
@@ -256,15 +273,34 @@ class WaBussinesPage:
 
     def formas_encontrar_empresa(self):
         try:
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Mais formas de encontrar sua empresa"]'))
             pular = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Pular"]'))
             pular.click()
-            time.sleep(1)
-            pular.click()
-            time.sleep(1)
-            pular.click()
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Adicionar descrição da empresa"]'))
+            pular_2 = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Pular"]'))
+            pular_2.click()
         except:
             print('[formas_encontrar_empresa] Erro: Não concluiu o pulo')
             return False
+
+    def selecionar_descricao(self):
+        try:
+            esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Adicionar descrição da empresa"]'))
+            descricao = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.EditText/android.view.View[2]'))
+            descricao.send_key("Empresa especializada em soluções de atendimento ao cliente, oferecendo suporte eficiente, central de chamadas e serviços de relacionamento para maximizar a satisfação e fidelização dos clientes.")
+            avancar = esperar_elemento_visivel(self.driver, (By.XPATH, '//androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View[2]'))
+            checked = avancar.get_attribute("enabled")
+            if checked == 'true':
+                avancar.click()
+            else:
+                pular = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Pular"]'))
+                pular.click()
+            teve, email = elemento_esta_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/headline'))
+            if teve:
+                esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/secondary_button')).click()
+            print("Whatsapp Bussines concluido")
+        except:
+            pass
 
     def selecionar_menu(self):
         menu = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/menuitem_overflow'))
