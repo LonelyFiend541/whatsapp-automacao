@@ -80,11 +80,10 @@ class WhatsAppPage:
 
     def selecionar_linguagem(self):
         try:
-            esperar_elemento_visivel(self.driver, (By.XPATH,
-                                                   '//android.widget.CheckBox[@content-desc="Selecionar (idioma do dispositivo) como idioma do app"]')).click()
-            return True
-        except Exception as e:
-            print(f"[selecionar_linguagem] Erro: {e}")
+            boolean, idioma = esperar_elemento_visivel(self.driver, (By.XPATH,'//android.widget.CheckBox[@content-desc="Selecionar (idioma do dispositivo) como idioma do app"]'))
+            if boolean:
+                idioma.click()
+        except:
             return False
 
     def clicar_prosseguir(self):
@@ -128,7 +127,6 @@ class WhatsAppPage:
                 return True, status
         except:
             return False, None
-            pass
 
     def pedirAnalise(self, numero):
 
@@ -146,7 +144,6 @@ class WhatsAppPage:
 
         except:
             return False, None
-            pass
 
     def verificarAnalise(self, numero):
         try:
@@ -157,7 +154,6 @@ class WhatsAppPage:
                 return True, status
         except:
             return False, None
-            pass
 
     def verificarChip(self, numero):
         try:
@@ -198,14 +194,11 @@ class WhatsAppPage:
 
     def pegarCodigoSms(self):
         try:
-            achou, elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp:')]"))
+            achou, elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp')]"))
             elemento.click()
-            mensagens = self.driver.find_elements(
-                AppiumBy.XPATH,
-                '//android.widget.TextView[contains(@text="Codigo do WhatsApp:")]'
-            )
+            mensagens = esperar_elementos_xpath(self.driver, '//android.widget.TextView[contains(@text, "Codigo do WhatsApp")]')
             if mensagens:
-                ultima_mensagem = mensagens[-1]
+                ultima_mensagem = mensagens[0]
                 codigoCompleto = ultima_mensagem.get_attribute('text')
                 padrao = r'(\d+)-(\d+)'
                 resultado = re.search(padrao, codigoCompleto)
@@ -214,11 +207,12 @@ class WhatsAppPage:
                 self.driver.terminate_app("com.samsung.android.messaging")
                 return True, codigo
             print('[pegarCodigoSms] Nenhuma mensagem encontrada.')
-            return False
+            self.driver.terminate_app("com.samsung.android.messaging")
+            return False, None
         except:
             self.driver.terminate_app("com.samsung.android.messaging")
             print(f"[pegarCodigoSms] Não pegou o codigo")
-            return False
+            return False, None
 
     def enviar_dados_para_api(self, udid):
         try:
@@ -238,7 +232,7 @@ class WhatsAppPage:
     def voltarWhatsapp(self):
         try:
             self.driver.activate_app("com.whatsapp")
-            campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input")).click()
+            campo = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/verify_sms_code_input"))
             print('voltou')
             return True
         except Exception as e:
@@ -285,16 +279,20 @@ class WhatsAppPage:
             esperar_elemento_visivel(self.driver, (By.ID, "android:id/button2")).click()
             print('negou o backup')
             return True
-        except Exception as e:
-            print(f"[aceitarPermissao] Erro: Não Aceitou as Permissoes")
+        except:
+            print(f"[aceitarPermissao] Erro: Não Negou o Backup")
             return False
 
     def colocarNome(self):
         try:
-            campo_nome = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/registration_name"))
-            campo_nome.send_keys("Call Center")
-            print("colocou o nome")
-            return True
+            campo_nome = (esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp:id/registration_name")))
+            if campo_nome.text != "Call Center":
+                campo_nome.clear()
+                campo_nome.send_keys("Call Center")
+                print("colocou o nome")
+                return True
+            else:
+                return True
         except:
             print(f"[colocarNome] Erro: Não Colocou o Nome")
             return False
@@ -302,10 +300,10 @@ class WhatsAppPage:
     def finalizarPerfil(self):
         try:
             self.driver.find_element(By.ID, "com.whatsapp:id/register_name_accept").click()
-            print('concluiu')
             if esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')):
                 verificar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')).click()
             time.sleep(10)
+            print('concluiu')
             return True
         except Exception as e:
             print(f"[finalizarPerfil] Erro: Não Finalizou o Perfil")

@@ -210,6 +210,38 @@ def esperar_elemento_scroll(driver, locator, timeout=10, max_scrolls=5) -> Tuple
     # Se não encontrou após max_scrolls, retorna False
     return False, None
 
+
+def esperar_elementos_xpath(driver, xpath, timeout=10):
+    """
+    Espera elementos aparecerem e retorna lista ordenada (mais recente primeiro).
+
+    :param driver: Instância Appium
+    :param xpath: String XPath para localizar os elementos
+    :param timeout: Tempo máximo de espera
+    :return: Lista de elementos ordenados (mais recente primeiro)
+    """
+    try:
+        # Espera pelo menos um aparecer
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((AppiumBy.XPATH, xpath))
+        )
+
+        # Pega todos
+        elementos = driver.find_elements(AppiumBy.XPATH, xpath)
+
+        if not elementos:
+            return []
+
+        # Em apps de mensagens, geralmente o último é o mais recente
+        # então invertendo para o mais recente ficar no índice 0
+        elementos_ordenados = list(reversed(elementos))
+
+        return elementos_ordenados
+
+    except Exception as e:
+        print(f"[esperar_elementos_xpath] Nenhum elemento encontrado: {e}")
+        return []
+
 def elemento_esta_visivel(
     driver: WebDriver,
     locator: Tuple[By, str],
@@ -230,6 +262,8 @@ def elemento_esta_visivel(
         return True, el
     except TimeoutException:
         return False, None
+
+
 
 
 

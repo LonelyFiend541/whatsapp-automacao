@@ -82,11 +82,16 @@ class WaBussinesPage:
         try:
             registrar_phone = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/registration_phone"))
             registrar_phone.send_keys(numero)
-            ddd = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/registration_phone"))
-            if ddd.text == "":
+            ddd = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/registration_cc"))
+            if ddd.text != "Código do país de Brasil, mais 55":
+                ddd.clean()
                 ddd.send_keys("55")
             submit = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/registration_submit'))
             submit.click()
+            bolean, mudarChip = elemento_esta_visivel(self.driver, (By.ID, 'android:id/message'))
+            if bolean:
+                mudarChip = esperar_elemento_visivel(self.driver, (By.ID, "android:id/button1"))
+                mudarChip.click()
         except:
             print("[registrar_numero] Erro: Não registrou o número")
             return False
@@ -157,23 +162,25 @@ class WaBussinesPage:
 
     def pegarCodigoSms(self):
         try:
-            elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp Business:')]"))
+            achou, elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp Business:')]"))
             elemento.click()
-            mensagem = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, '//android.widget.TextView[@resource-id="com.samsung.android.messaging:id/list_item_text_view" and contains(@text="Codigo do WhatsApp Business:")]'))
-            if mensagem:
-                ultima_mensagem = mensagem[-1]
-                codigoCompleto = ultima_mensagem.get_attribute('content-desc')
+            mensagens = esperar_elementos_xpath(self.driver, '//android.widget.TextView[contains(@text, "Codigo do WhatsApp Business:")]')
+            if mensagens:
+                ultima_mensagem = mensagens[0]
+                codigoCompleto = ultima_mensagem.get_attribute('text')
                 padrao = r'(\d+)-(\d+)'
                 resultado = re.search(padrao, codigoCompleto)
                 codigo = resultado.group(1) + resultado.group(2)
+                print(f'pegou o codigo {codigo}')
                 self.driver.terminate_app("com.samsung.android.messaging")
-                print('pegou o codigo')
-                return codigo
+                return True, codigo
             print('[pegarCodigoSms] Nenhuma mensagem encontrada.')
-            return None
-        except Exception as e:
-            print(f"[pegarCodigoSms] Erro: e")
-            return None
+            self.driver.terminate_app("com.samsung.android.messaging")
+            return False, None
+        except:
+            self.driver.terminate_app("com.samsung.android.messaging")
+            print(f"[pegarCodigoSms] Não pegou o codigo")
+            return False, None
 
     def voltarWhatsapp(self):
         try:
@@ -197,8 +204,12 @@ class WaBussinesPage:
 
     def negar_backup(self):
         try:
+            bolean, permissao = elemento_esta_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/submit'))
+            if bolean:
+                permissao.click()
             negar = esperar_elemento_visivel(self.driver, (By.ID, 'android:id/button2'), 20)
             negar.click()
+            return True
         except:
             print("[negar_backup] Erro: Não clicou em negar backup")
             return False
@@ -206,7 +217,7 @@ class WaBussinesPage:
     def colocar_nome(self):
         try:
             nome = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.EditText'))
-            if nome.text == "":
+            if nome.text != "Call Center":
                 nome.send_keys("Call Center")
                 continuar = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.TextView[@text="Avançar"]'))
                 continuar.click()

@@ -149,7 +149,7 @@ def rodar_automacao_whatsapp(driver):
             return
 
         if whatsapp.abrirAppMensagens():
-            codigo = whatsapp.pegarCodigoSms()
+            sn, codigo = whatsapp.pegarCodigoSms()
             #enviar_para_api(numero, codigo)
             #whatsapp.voltarWhatsapp()
             whatsapp.inserir_codigo_sms(codigo)

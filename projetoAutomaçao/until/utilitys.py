@@ -17,7 +17,7 @@ os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tool
 os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "cmdline-tools", "latest", "bin")
 ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
 
-udids = drivers_wa.pegar_udids()
+#udids = drivers_wa.pegar_udids()
 
 # pega o diretório raiz do projeto
 RAIZ_PROJETO = os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +43,7 @@ def salvar_numero(numero: str):
 def ler_numeros():
     with open(ARQUIVO, "r") as f:
         return json.load(f)
+
 
 def retry(max_tentativas: int = 3, delay: int = 2, exceptions: tuple = (Exception,)) -> callable:
     """

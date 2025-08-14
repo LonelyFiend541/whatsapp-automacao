@@ -121,7 +121,7 @@ def rodar_automacao_whatsapp_bussines(driver):
             #table.salvar_numeros(numero, status)
             return
         if whatsappbussines.abrir_app_mensagens():
-            codigo = whatsappbussines.pegarCodigoSms()
+            sn, codigo = whatsappbussines.pegarCodigoSms()
             whatsappbussines.colocar_codigo(codigo)
         whatsappbussines.negar_backup()
         #table.salvar_numeros(numero, status)
