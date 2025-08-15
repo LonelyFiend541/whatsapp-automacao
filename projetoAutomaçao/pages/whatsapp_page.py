@@ -3,6 +3,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from appium.webdriver.common.appiumby import AppiumBy
 from until.utilitys import *
+
 from until.waits import *
 import subprocess
 import time
@@ -300,11 +301,26 @@ class WhatsAppPage:
     def finalizarPerfil(self):
         try:
             self.driver.find_element(By.ID, "com.whatsapp:id/register_name_accept").click()
-            if esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')):
+            if elemento_esta_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')):
                 verificar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp:id/secondary_button')).click()
-            time.sleep(10)
             print('concluiu')
             return True
         except Exception as e:
             print(f"[finalizarPerfil] Erro: Não Finalizou o Perfil")
             return False
+
+    def salvar(self, numero):
+        try:
+            campos = self.driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.EditText")
+            campos[0].send_keys('Call Center')
+            campos[1].send_keys(numero)
+        except:
+            pass
+
+'''            nome = esperar_elemento_visivel(self.driver, (By.ID, 'com.samsung.android.app.contacts:id/nameEdit'))
+            nome.send_keys(f"Call Center: {numero}")
+            telefone = esperar_elemento_visivel(self.driver, (By.XPATH, '(//android.widget.EditText[@resource-id="com.samsung.android.app.contacts:id/forCursorEdit"])[1]'))
+            telefone.send_keys(numero)
+            salvar = esperar_elemento_visivel(self.driver, (By.ID, 'com.samsung.android.app.contacts:id/menu_done'))
+            salvar.click()
+            self.driver.terminate_app("com.samsung.android.app.contacts")'''

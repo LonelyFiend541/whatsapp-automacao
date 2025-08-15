@@ -2,6 +2,8 @@ from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
 
+from contatos import contatos
+from contatos.contatos import *
 import until.utilitys
 from pages.wa_bussines import *
 from until.utilitys import *
@@ -104,7 +106,14 @@ def rodar_automacao_whatsapp_bussines(driver):
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
         numero = whatsappbussines.pegar_numero_chip2(udid)
-        until.utilitys.salvar_numero(numero)
+        resultados = executar_paralelo_arg(
+            (contatos.salvar_numero, (numero,), {}),
+            (numero_existe, (numero, udid), {})
+        )
+        if not resultados[1]:
+            criar_contato(numero, udid)
+            whatsappbussines.salvar(numero)
+
         whatsappbussines.aceitar_termos()
         whatsappbussines.usar_outro_chip()
         whatsappbussines.registrar_numero(numero)

@@ -19,30 +19,7 @@ ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
 
 #udids = drivers_wa.pegar_udids()
 
-# pega o diretório raiz do projeto
-RAIZ_PROJETO = os.path.dirname(os.path.abspath(__file__))
-PASTA = os.path.join(RAIZ_PROJETO, "numeros")
-ARQUIVO = os.path.join(PASTA, "numeros.json")
 
-# cria a pasta se não existir
-os.makedirs(PASTA, exist_ok=True)
-
-# cria o arquivo se não existir
-if not os.path.exists(ARQUIVO):
-    with open(ARQUIVO, "w") as f:
-        json.dump([], f)
-
-def salvar_numero(numero: str):
-    with open(ARQUIVO, "r") as f:
-        numeros = json.load(f)
-    if numero not in numeros:
-        numeros.append(numero)
-    with open(ARQUIVO, "w") as f:
-        json.dump(numeros, f, indent=4)
-
-def ler_numeros():
-    with open(ARQUIVO, "r") as f:
-        return json.load(f)
 
 
 def retry(max_tentativas: int = 3, delay: int = 2, exceptions: tuple = (Exception,)) -> callable:
@@ -136,6 +113,7 @@ def esta_ativo_por_xpath(driver, xpath):
     except Exception as e:
         print(f"[esta_ativo_por_xpath] Erro ao verificar estado do elemento: {e}")
         return False
+
 
 
 

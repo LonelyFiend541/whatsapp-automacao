@@ -3,6 +3,8 @@
 import time
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
+
+import contatos.contatos
 import pages.wa_bussines
 import pages.whatsapp_page
 import os
@@ -47,10 +49,7 @@ def test_selecionar_empresa():
         # Aguarde a tela estar pronta, se necessário
         time.sleep(2)
 
-        registro = pages.wa_bussines.WaBussinesPage(driver)
-        registro = pages.whatsapp_page.WhatsAppPage(driver)
-        #registro.abrirAppMensagens()
-        #resultado = registro.colocarNome()
+        contatos.contatos.criar_contato("leo", "111549")
 
 
         #assert resultado is True, "❌ Falha ao selecionar empresa!"

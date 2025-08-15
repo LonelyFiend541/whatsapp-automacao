@@ -110,14 +110,50 @@ def verificar_elemento_visivel(driver: object, locator: object, timeout: object 
         return None
         pass
 
+import threading
+
 def executar_paralelo_arg(*funcoes):
+    """
+    Executa múltiplas funções em paralelo usando threads.
+
+    Cada função deve ser passada como uma tupla:
+        (func, args, kwargs)
+    Exemplo:
+        executar_paralelo_arg(
+            (salvar_numero, (numero,), {}),
+            (numero_existe, (numero, udid), {})
+        )
+    """
     threads = []
-    for func, *args in funcoes:
-        thread = threading.Thread(target=func, args=tuple(args))
+    resultados = [None] * len(funcoes)
+
+    def wrapper(idx, func, args, kwargs):
+        try:
+            resultados[idx] = func(*args, **kwargs)
+        except Exception as e:
+            resultados[idx] = e
+            print(f"❌ Erro na função {func.__name__}: {e}")
+
+    for i, item in enumerate(funcoes):
+        if len(item) == 3:
+            func, args, kwargs = item
+        elif len(item) == 2:
+            func, args = item
+            kwargs = {}
+        else:
+            func = item[0]
+            args = ()
+            kwargs = {}
+
+        thread = threading.Thread(target=wrapper, args=(i, func, args, kwargs))
         thread.start()
         threads.append(thread)
+
     for thread in threads:
         thread.join()
+
+    return resultados
+
 
 def executar_paralelo_normal(*funcoes):
     with ThreadPoolExecutor(max_workers=len(funcoes)) as executor:
@@ -166,7 +202,6 @@ def executar_paralelo(*tarefas):
                     for f in futuros:
                         if not f.done():
                             f.cancel()
-                    print("⚠️ Uma das funções retornou True. Interrompendo automação.")
                     return True, status
             except Exception as e:
                 print(f"❌ Erro ao executar função paralela: {e}")

@@ -93,7 +93,6 @@ class WaBussinesPage:
                 mudarChip = esperar_elemento_visivel(self.driver, (By.ID, "android:id/button1"))
                 mudarChip.click()
         except:
-            print("[registrar_numero] Erro: Não registrou o número")
             return False
 
     def confirmar_sms(self, numero):
@@ -329,3 +328,12 @@ class WaBussinesPage:
         campo = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/enter_code_boxes'))
         codigo_1 = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.EditText[@content-desc="Insira o código de 8 caracteres, campo 1 de 8"]'))
         codigo_1.send_keys = (codigo_api)
+
+    def salvar(self, numero):
+        nome = esperar_elemento_visivel(self.driver, (By.ID, 'com.samsung.android.app.contacts:id/arrowButton'))
+        nome.send_keys(f"Call Center: {numero}")
+        telefone = esperar_elemento_visivel(self.driver, (By.XPATH, '(//android.widget.RelativeLayout[@resource-id="com.samsung.android.app.contacts:id/titleLayout"])[1]'))
+        telefone.send_keys(numero)
+        salvar = esperar_elemento_visivel(self.driver, (By.ID, 'com.samsung.android.app.contacts:id/menu_done'))
+        salvar.click()
+        self.driver.terminate_app("	com.samsung.android.app.contacts")

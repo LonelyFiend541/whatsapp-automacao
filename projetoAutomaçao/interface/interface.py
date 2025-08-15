@@ -1,4 +1,3 @@
-import os
 import sys
 import tkinter as tk
 from appium.webdriver.common.appiumby import AppiumBy
