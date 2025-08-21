@@ -117,7 +117,7 @@ BTwireless = tk.Button(container, text="WIRELESS", command=wireless, **aparencia
 BTwireless.grid(row=2, column=2, padx=10, pady=5)
 
 BTlimpar = tk.Button(container, text="LIMPAR", command=limpar, **aparencia_botao)
-BTlimpar.grid(row=4, column=0, padx=10, pady=5)
+BTlimpar.grid(row=3, column=2, padx=10, pady=5)
 
 BTverificar = tk.Button(container, text="VERIFICAR", command=verificarsf, **aparencia_botao)
 BTverificar.grid(row=3, column=0, padx=20, pady=5)
