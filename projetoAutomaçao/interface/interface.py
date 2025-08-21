@@ -18,14 +18,16 @@ janela = tk.Tk()
 janela.title('Central de Recadastro')
 janela.geometry('800x600')
 
+
 # Container principal
 container = tk.Frame(janela, bg="#f0f0f0")
 container.place(relx=0.5, rely=0.5, anchor="center")
 
 # === Logo ===
 fundo = tk.PhotoImage(file="ALT360_logo.png")
+
 logo = tk.Label(container, image=fundo, bg="#f0f0f0")
-logo.grid(row=1, column=0, columnspan=2, pady=(0, 20))
+logo.grid(row=1, column=0, columnspan=3, pady=(0, 20))
 
 # === Aparência dos botões ===
 aparencia_botao = {
@@ -105,39 +107,39 @@ label = tk.Label(
     container,
     text="Conecte o celular para executar o recadastro 🔃"
 )
-label.grid(row=0, column=0, columnspan=2, pady=(10, 20))
+label.grid(row=0, column=0, columnspan=3, pady=(10,20))
 
 # === Botões ===
 BTexec = tk.Button(container, text="WHATSAPP", command=executar, **aparencia_botao)
 BTexec.grid(row=2, column=0, padx=10, pady=5)
 
-BTexectd = tk.Button(container, text="BUSINESS", command=executartd, **aparencia_botao)
-BTexectd.grid(row=2, column=1, padx=10, pady=5)
-
 BTwireless = tk.Button(container, text="WIRELESS", command=wireless, **aparencia_botao)
-BTwireless.grid(row=3, column=0, padx=10, pady=5)
-
-BTverificar = tk.Button(container, text="VERIFICAR", command=verificarsf, **aparencia_botao)
-BTverificar.grid(row=3, column=1, padx=10, pady=5)
+BTwireless.grid(row=2, column=2, padx=10, pady=5)
 
 BTlimpar = tk.Button(container, text="LIMPAR", command=limpar, **aparencia_botao)
 BTlimpar.grid(row=4, column=0, padx=10, pady=5)
 
-BTencerrar = tk.Button(container, text="ENCERRAR", command=encerrar_serv, **aparencia_botao)
-BTencerrar.grid(row=4, column=1, padx=10, pady=5)
+BTverificar = tk.Button(container, text="VERIFICAR", command=verificarsf, **aparencia_botao)
+BTverificar.grid(row=3, column=0, padx=20, pady=5)
 
-BTencerrar = tk.Button(container, text="OTIMIZAR", command=otimizar_cel, **aparencia_botao)
-BTencerrar.grid(row=4, column=2, padx=10, pady=5)
+BTexectd = tk.Button(container, text="BUSINESS", command=executartd, **aparencia_botao)
+BTexectd.grid(row=2, column=1, padx=10, pady=5)
 
-BTlimparwhatsapp = tk.Button(container, text="Limpar Whatsapp", command=limpar_whatsapp_ui, **aparencia_botao)
-BTlimparwhatsapp.grid(row=3, column=2, padx=10, pady=5)
-
-BTlimparwhatsappBussines = tk.Button(container, text="Limpar Bussines", command=limpar_whatsapp_bussines_ui, **aparencia_botao)
-BTlimparwhatsappBussines.grid(row=2, column=2, padx=10, pady=5)
+BTotimizar=tk.Button(container, text="OTIMIZAR", command=otimizar_cel, **aparencia_botao)
+BTotimizar.grid(row=3, column=1, padx=10, pady=5)
 
 # === Área de log ===
-log_area = ScrolledText(container, height=10, width=60, state='disabled', bg="#f0f0f0")
-log_area.grid(row=5, column=0, columnspan=2, pady=(20, 15))
+log_area = ScrolledText(container, height=10, width=60, state='disabled', bg="black", fg="white")
+log_area.grid(row=4, column=0, columnspan=3, pady=(20, 10))
+
+BTencerrar = tk.Button(container, text="ENCERRAR", command=encerrar_serv, **aparencia_botao)
+BTencerrar.grid(row=5, column=0, padx=10, pady=5)
+
+BTlimparwhatsapp = tk.Button(container, text="Limpar Whatsapp", command=limpar_whatsapp_ui, **aparencia_botao)
+BTlimparwhatsapp.grid(row=5, column=1, padx=10, pady=5)
+
+BTlimparwhatsappBussines = tk.Button(container, text="Limpar Bussines", command=limpar_whatsapp_bussines_ui, **aparencia_botao)
+BTlimparwhatsappBussines.grid(row=5, column=2, padx=10, pady=5)
 
 # === Redirecionamento de stdout/stderr para log ===
 class TextRedirector:
