@@ -327,7 +327,7 @@ class WaBussinesPage:
     def colocar_codigo_instancia(self, codigo_api):
         campo = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/enter_code_boxes'))
         codigo_1 = esperar_elemento_visivel(self.driver, (By.XPATH, '//android.widget.EditText[@content-desc="Insira o código de 8 caracteres, campo 1 de 8"]'))
-        codigo_1.send_keys = (codigo_api)
+        codigo_1.send_keys(codigo_api)
 
     def salvar(self, numero):
         nome = esperar_elemento_visivel(self.driver, (By.ID, 'com.samsung.android.app.contacts:id/arrowButton'))

@@ -64,11 +64,7 @@ class WhatsAppPage:
             print(f"[pegar_numero_chip1] Exceção inesperada: {e}")
             raise
 
-        except Exception as e:
 
-            print(f"[pegarNumeroChip1] Falha em pegar numero")
-
-            raise
 
     def abrirWhatsapp(self):
         try:
@@ -112,7 +108,7 @@ class WhatsAppPage:
 
     def confirmarNumero(self):
         try:
-            confirmar = esperar_elemento_visivel(self.driver, (By.ID, "android:id/button1"))
+            confirmar = esperar_elemento_visivel(self.driver, (By.ID, "android:id/button1"), 30)
             confirmar.click()
             time.sleep(0.5)
             return True

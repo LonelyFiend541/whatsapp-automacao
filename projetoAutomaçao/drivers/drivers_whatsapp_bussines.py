@@ -106,13 +106,12 @@ def rodar_automacao_whatsapp_bussines(driver):
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
         numero = whatsappbussines.pegar_numero_chip2(udid)
-        resultados = executar_paralelo_arg(
-            (contatos.salvar_numero, (numero,), {}),
-            (numero_existe, (numero, udid), {})
-        )
-        if not resultados[1]:
-            criar_contato(numero, udid)
-            whatsappbussines.salvar(numero)
+        #resultados = executar_paralelo_arg(
+            #(contatos.salvar_numero, (numero,), {}),
+            #(numero_existe, (numero, udid), {}))
+        #if not resultados[1]:
+            #criar_contato(numero, udid)
+            #whatsappbussines.salvar(numero)
 
         whatsappbussines.aceitar_termos()
         whatsappbussines.usar_outro_chip()
