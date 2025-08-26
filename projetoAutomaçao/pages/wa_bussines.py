@@ -95,6 +95,15 @@ class WaBussinesPage:
         except:
             return False
 
+    def usar_numero(self):
+        try:
+            confirmar, elemento = elemento_esta_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/restore_from_consumer_view"),)
+            if confirmar:
+                mesmo_numero = esperar_elemento_visivel(self.driver, (By.ID, "com.whatsapp.w4b:id/use_consumer_app_info_button"))
+                mesmo_numero.click()
+        except:
+            pass
+
     def confirmar_sms(self, numero):
         try:
             outro_metodo = esperar_elemento_visivel(self.driver, (By.ID, 'com.whatsapp.w4b:id/secondary_button'))
@@ -161,7 +170,7 @@ class WaBussinesPage:
 
     def pegarCodigoSms(self):
         try:
-            achou, elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp Business:')]"))
+            achou, elemento = esperar_elemento_scroll(self.driver, (AppiumBy.XPATH, "//android.widget.TextView[contains(@text, 'Codigo do WhatsApp Business:')]"), 30)
             elemento.click()
             mensagens = esperar_elementos_xpath(self.driver, '//android.widget.TextView[contains(@text, "Codigo do WhatsApp Business:")]')
             if mensagens:

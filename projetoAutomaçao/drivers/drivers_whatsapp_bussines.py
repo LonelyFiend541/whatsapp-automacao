@@ -116,6 +116,7 @@ def rodar_automacao_whatsapp_bussines(driver):
         whatsappbussines.aceitar_termos()
         whatsappbussines.usar_outro_chip()
         whatsappbussines.registrar_numero(numero)
+        whatsappbussines.usar_numero()
         whatsappbussines.confirmar_chip()
         boolean, status = executar_paralelo(
 
