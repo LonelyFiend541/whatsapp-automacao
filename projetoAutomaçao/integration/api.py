@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from dotenv import load_dotenv
 
@@ -45,18 +46,21 @@ class Agente:
         except requests.RequestException:
             return {}
 
-    def enviar_mensagem(self, numero, mensagem):
-        """Envia mensagem de texto via Z-API"""
-        try:
-            url = f"{BASE_URL}/instances/{self.instance_id}/token/{self.token}/send-text"
-            payload = {"phone": numero, "message": mensagem}
-            headers = {'Client-Token': CLIENT_TOKEN}
-            resp = requests.post(url, headers=headers, json=payload)
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException as e:
-            print(f"Erro ao enviar mensagem para {numero}: {e}")
-            return None
+    def enviar_mensagem(self, numero, mensagem, tentativas=3):
+        """Envia mensagem de texto via Z-API com retry"""
+        url = f"{BASE_URL}/instances/{self.instance_id}/token/{self.token}/send-text"
+        payload = {"phone": numero, "message": mensagem}
+        headers = {'Client-Token': CLIENT_TOKEN}
+
+        for tentativa in range(1, tentativas + 1):
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=10)
+                resp.raise_for_status()
+                return resp.json()
+            except requests.RequestException as e:
+                print(f"Tentativa {tentativa} falhou ao enviar para {numero}: {e}")
+                time.sleep(2)  # aguarda antes de tentar de novo
+        return None
 
     def dados(self):
         """Imprime informações do agente"""
@@ -85,10 +89,10 @@ def carregar_instancias():
     return instances
 
 # Cria objetos Agente
-agentes = []
+agentes_zapi = []
 for ins in carregar_instancias():
     ag = Agente(f"Zapi Lento {ins['numero']}", ins['id'], ins['token'])
-    agentes.append(ag)
+    agentes_zapi.append(ag)
 
 # Teste: imprime todos os agentes
 '''for ag in agentes:

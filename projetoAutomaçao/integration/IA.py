@@ -1,24 +1,69 @@
 import time
-from concurrent.futures import ThreadPoolExecutor
-from integration.api import agentes
 import ollama
+from integration.api_GTI import agentes_gti
+from concurrent.futures import ThreadPoolExecutor, as_completed
+executor = ThreadPoolExecutor(max_workers=5)
 
-executor = ThreadPoolExecutor(max_workers=2)
+
+def enviar_mensagem_async(agente, numero, mensagem):
+    """Envia mensagem de forma assíncrona"""
+    future = executor.submit(enviar_mensagem_segura, agente, numero, mensagem)
+    return future
+
+def conversar_automatica_parallel(agente1, agente2, max_turnos=10):
+    historico = []
+
+    print("🤖 IA: Fala! Manda aí o que tá pegando (digite 'sair' pra encerrar).")
+    user_msg = input("Você: ")
+
+    if user_msg.lower() in ["sair", "exit", "quit"]:
+        print("🤖 IA: Valeu, até a próxima! 👋")
+        return
+
+    # Primeiro envio do usuário
+    future1 = enviar_mensagem_async(agente1, agente2.numero, user_msg)
+    historico.append({"role": "user", "content": user_msg})
+    turno = 0
+
+    while turno < max_turnos:
+        # Gera resposta do agente2 enquanto envia mensagem do agente1
+        resposta_agente2 = get_ia_response(user_msg, historico, "Responda curto e natural, como WhatsApp.")
+
+        # Envia resposta do agente2 e já envia automaticamente a resposta do agente1 em paralelo
+        future2 = enviar_mensagem_async(agente2, agente1.numero, resposta_agente2)
+        print(f"{agente2.nome}: {resposta_agente2}")
+        historico.append({"role": "assistant", "content": resposta_agente2})
+
+        resposta_agente1 = get_ia_response(resposta_agente2, historico, "Continue a conversa, <=120 caracteres")
+        future1 = enviar_mensagem_async(agente1, agente2.numero, resposta_agente1)
+        print(f"{agente1.nome}: {resposta_agente1}")
+        historico.append({"role": "user", "content": resposta_agente1})
+
+        # Aguarda envio do turno anterior
+        for f in [future1, future2]:
+            try:
+                f.result(timeout=5)
+            except Exception as e:
+                print(f"⚠️ Erro no envio paralelo: {e}")
+
+        user_msg = resposta_agente1
+        turno += 1
+
+    print("🤖 Conversa automática encerrada.")
+
 
 def get_ia_response(user_message, historico, prompt_extra=""):
     if not user_message:
         return "🤔 Opa, não entendi sua mensagem."
 
-    # Adiciona mensagem do usuário ao histórico
     historico.append({"role": "user", "content": user_message})
 
-    # Monta mensagens para o modelo
     mensagens = [
         {
             "role": "system",
             "content": (
                 "Você é um amigo virtual que conversa pelo WhatsApp de forma natural e descontraída.\n"
-                "Responda de forma curta, casual, com gírias e emojis, e lembre das mensagens anteriores."
+                "Responda de forma curta, casual, com gírias e emojis, lembrando do contexto da conversa."
             )
         }
     ]
@@ -26,54 +71,72 @@ def get_ia_response(user_message, historico, prompt_extra=""):
     if prompt_extra:
         mensagens.append({"role": "system", "content": prompt_extra})
 
-    # Limita histórico e gera resumo se necessário
-    if len(historico) > 5:
+    if len(historico) > 6:
         resumo = " ".join([m["content"] for m in historico[:-3]])
-        mensagens.append({"role": "system", "content": f"Resumo da conversa anterior: {resumo}"})
+        mensagens.append({
+            "role": "system",
+            "content": f"Resumo rápido da conversa até agora: {resumo[:200]}..."
+        })
 
-    mensagens.extend(historico[-3:])  # Mantém apenas últimas 3 mensagens completas
+    mensagens.extend(historico[-3:])
 
     try:
-        response = ollama.chat(model="codellama", messages=mensagens)
+        response = ollama.chat(model="llama3.2:1b", messages=mensagens)
         resposta_texto = response["message"]["content"].strip()
-
-        # Limita a resposta a 60 caracteres
-        if len(resposta_texto) > 60:
-            resposta_texto = resposta_texto[:57] + "…"
-
         historico.append({"role": "assistant", "content": resposta_texto})
         return resposta_texto
-
     except Exception as e:
         print(f"⚠️ Erro ao gerar resposta com Ollama: {e}")
         return "⚠️ Deu ruim aqui, não consegui pensar em nada 😅"
 
+def enviar_mensagem_segura(agente, numero, mensagem):
+    """Tenta enviar mensagem, reconectando se necessário"""
+    if not agente.conectado:
+        print(f"[{agente.nome}] Não está conectado. Tentando gerar QR e reconectar...")
+        agente.gerar_qr(modo="img")
+        agente.atualizar_status()
+        if not agente.conectado:
+            print(f"[{agente.nome}] Falha ao conectar. Mensagem não enviada.")
+            return None
 
-def enviar_mensagem_assincrona(agente, numero, mensagem):
-    """Envia mensagens sem travar o loop principal"""
-    executor.submit(agente.enviar_mensagem, numero, mensagem)
+    return agente.enviar_mensagem(numero, mensagem)
 
-
-def conversar():
+def conversar(agente1, agente2):
     historico = []
     print("🤖 IA: Fala! Manda aí o que tá pegando (digite 'sair' pra encerrar).")
     msg = input("Você: ")
-
+    enviar_mensagem_segura(agente1, agente2.numero, msg)
+    time.sleep(5)
     while True:
         if msg.lower() in ["sair", "exit", "quit"]:
             print("🤖 IA: Valeu, até a próxima! 👋")
             break
 
-        # Gera resposta da IA
-        resposta = get_ia_response(msg, historico, "de maneira resumida mas continuando a conversa de forma natural ")
-
-        # Envia mensagens assíncronas para os agentes
-        enviar_mensagem_assincrona(agentes[8], agentes[9].numero, msg)
-        print(f"🤖 IA-8: {msg}")
-        enviar_mensagem_assincrona(agentes[9], agentes[8].numero, resposta)
+        # Gera a resposta primeiro
+        resposta = get_ia_response(msg, historico, "Responda curto e natural, como WhatsApp.")
         print(f"🤖 IA-9: {resposta}")
-        msg = get_ia_response(resposta, historico)
+
+        # Envia a mensagem
+        enviar_mensagem_segura(agente2, agente1.numero, resposta)
+        time.sleep(5)
+
+        # Atualiza a próxima mensagem (simulação de conversa contínua)
+        msg = get_ia_response(resposta, historico, "Continue a conversa, <=120 caracteres")
+
+        # Envia a mensagem do usuário simulada pelo agente
+        enviar_mensagem_segura(agente1, agente2.numero, msg)
+        print(f"🤖 IA-8: {msg}")
+        time.sleep(5)
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
-    conversar()
+    agentes_gti[0].dados()
+    agentes_gti[2].dados()
+    conversar(agentes_gti[0], agentes_gti[2])
+    #conversar(agentes_zapi[0], agentes_zapi[1])
