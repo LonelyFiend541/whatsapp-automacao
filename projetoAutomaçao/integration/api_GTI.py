@@ -1,11 +1,12 @@
 import os
 import base64
 from io import BytesIO
-from PIL import Image
 import re
 import requests
-from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from PIL import Image
+import pyodbc
+from dotenv import load_dotenv
 
 load_dotenv()
 BASE_URL = "https://api.gtiapi.workers.dev"
@@ -22,99 +23,84 @@ class AgenteGTI:
         self.timeout = timeout
         self.debug = debug
 
+        # Sessão persistente para reduzir latência
+        self.session = requests.Session()
+        self.session.headers.update({
+            "token": self.token,
+            "Content-Type": "application/json"
+        })
+
         self.atualizar_status()
 
     def atualizar_status(self):
-        """Atualiza status da instância usando apenas o token"""
+        """Atualiza status da instância usando sessão persistente"""
         try:
-            resp = requests.get(f"{BASE_URL}/instance/status", headers={'token': self.token}, timeout=self.timeout)
+            resp = self.session.get(f"{BASE_URL}/instance/status", timeout=self.timeout)
             data = resp.json()
-            # Número do dono
             self.numero = data.get("instance", {}).get("owner")
-            # Status real de conexão
             self.conectado = data.get("status", {}).get("connected", False)
-            # QR code atual
             self.qrcode = data.get("instance", {}).get("qrcode", "")
             self.status_data = data
         except Exception as e:
             print(f"[{self.nome}] Erro ao atualizar status: {e}")
             self.conectado = False
 
-    def check_status(self):
-        """Consulta status da instância"""
-        try:
-            url = f"{BASE_URL}/instance/status"
-            headers = {'token': self.token}
-            resp = requests.get(url, headers=headers, timeout=self.timeout)
-            resp.raise_for_status()
-            return resp.json().get("instance", {})
-        except requests.RequestException as e:
-            print(f"[{self.nome}] Erro ao consultar status: {e}")
-            return {}
+    def enviar_mensagem(self, numero, mensagem, mentions=""):
+        """Envia mensagem via API GTI"""
+        if not mensagem:
+            print(f"[{self.nome}] Mensagem vazia. Abortando envio.")
+            return None
 
-    def enviar_mensagem(self, numero, mensagem):
-        """Envia mensagem via API GTI com payload correto"""
-        url = f"{BASE_URL}/send/text"
-        headers = {
-            "token": self.token,
-            "Content-Type": "application/json"
-        }
         payload = {
-            "number": numero,  # número do destinatário
-            "text": mensagem,  # conteúdo da mensagem
-            "linkPreview": False,  # não gerar preview de links
-            "replyid": "",  # se for responder alguma mensagem, coloque o ID
-            "mentions": "",  # "all" ou lista separada por vírgula
-            "readchat": True,  # marcar chat como lido
-            "delay": 0  # atraso para envio
+            "number": str(numero),
+            "text": str(mensagem),
+            "linkPreview": False,
+            "replyid": "",
+            "mentions": str(mentions),
+            "readchat": True,
+            "delay": 0
         }
 
         try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+            resp = self.session.post(f"{BASE_URL}/send/text", json=payload, timeout=self.timeout)
             resp.raise_for_status()
+            print(f"[{self.nome}] Mensagem enviada para {numero}")
             return resp.json()
         except requests.RequestException as e:
             print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
             return None
 
     def exibir_qr(self):
-        """Exibe o QR code decodificando a imagem Base64"""
+        """Exibe QR code como imagem"""
         if not self.qrcode:
             print(f"[{self.nome}] Nenhum QR code disponível")
             return
-
         try:
             img_bytes = base64.b64decode(self.qrcode)
             img = Image.open(BytesIO(img_bytes))
-            img.show()  # Abre no visualizador padrão do sistema
+            img.show()
         except Exception as e:
             print(f"[{self.nome}] Erro ao abrir QR code: {e}")
 
     def gerar_qr_terminal(self, qr_string=None):
-        """Exibe QR code no terminal (texto)"""
+        """Exibe QR code no terminal"""
         qr_string = qr_string or self.qrcode
         if not qr_string:
-            print(f"[{self.nome}] Nenhum QR code disponível")
             return
-
         import qrcode
         qr = qrcode.QRCode(version=1, box_size=1, border=1)
         qr.add_data(qr_string)
         qr.make(fit=True)
-
         for linha in qr.get_matrix():
             print("".join(["██" if celula else "  " for celula in linha]))
 
     def gerar_qr(self, modo="img"):
-        """Gera QR code usando apenas o token"""
+        """Solicita geração de QR code"""
         try:
-            url = f"{BASE_URL}/instance/connect"
-            headers = {'token': self.token}
-            resp = requests.post(url, headers=headers, timeout=self.timeout)
+            resp = self.session.post(f"{BASE_URL}/instance/connect", timeout=self.timeout)
 
             if resp.status_code == 409:
-                # Instância já conectada, atualizar status e usar QR existente
-                print(f"[{self.nome}] Instância já conectada. Usando QR code existente.")
+                print(f"[{self.nome}] Já conectado, atualizando status.")
                 self.atualizar_status()
             else:
                 resp.raise_for_status()
@@ -123,57 +109,96 @@ class AgenteGTI:
                 if qr_base64.startswith("data:image/png;base64,"):
                     qr_base64 = qr_base64.split(",")[1]
                 self.qrcode = qr_base64
-                if self.debug:
-                    print(f"[{self.nome}] Debug QR code data: {data}")
 
             if self.qrcode:
-                print(f"\n[{self.nome}] QR Code disponível:")
+                print(f"\n[{self.nome}] QR Code disponível")
                 if modo == "terminal":
                     self.gerar_qr_terminal(self.qrcode)
                 else:
                     self.exibir_qr()
-            else:
-                print(f"[{self.nome}] Nenhum QR code disponível")
         except requests.RequestException as e:
             print(f"[{self.nome}] Erro ao gerar QR code: {e}")
 
     def dados(self):
-        """Exibe informações do agente"""
-        print(f"[{self.nome}] Número: {self.numero} | Conectado: {self.conectado}")
+        """Mostra dados básicos"""
+        print(f"{self.nome} | Número: {self.numero} | Conectado: {self.conectado}")
 
 
-def carregar_agentes_do_env():
-    """Carrega tokens do .env e cria agentes"""
-    agentes_gti = []
-    pattern = re.compile(r'GTI_(\d+)')
-    for key, value in os.environ.items():
-        match = pattern.match(key)
-        if match:
-            numero = match.group(1)
-            token = value
-            agentes_gti.append(AgenteGTI(token=token, nome=f"Agente {numero}"))
-    return agentes_gti
+# ======================
+# Funções auxiliares
+# ======================
+
+def carregar_agentes_do_banco(conn_str):
+    """
+    Carrega agentes direto do banco e retorna lista de AgenteGTI
+    """
+    query = """
+        SELECT TELEFONE, SENHA
+        FROM [NEWWORK].[dbo].[ROTA]
+        WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%'
+    """
+    agentes = []
+    try:
+        with pyodbc.connect(conn_str) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                for nome_instancia, token in cursor.fetchall():
+                    agentes.append(AgenteGTI(token=token, nome=nome_instancia))
+        return agentes
+    except Exception as e:
+        print(f"❌ Erro ao carregar agentes: {e}")
+        return []
 
 
-def gerar_qr_parallel(agentes, max_workers=5, modo="img"):
-    """Gera QR codes de múltiplos agentes em paralelo"""
+def atualizar_status_parallel(agentes, max_workers=10):
+    """Atualiza status em paralelo"""
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_agente = {executor.submit(ag.gerar_qr, modo): ag for ag in agentes}
+        future_to_agente = {executor.submit(ag.atualizar_status): ag for ag in agentes}
         for future in as_completed(future_to_agente):
             ag = future_to_agente[future]
             try:
                 future.result()
             except Exception as e:
-                print(f"[{ag.nome}] Erro inesperado: {e}")
+                print(f"[{ag.nome}] Erro inesperado ao atualizar: {e}")
 
 
+def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=10):
+    """Envia mensagens em paralelo para todos os agentes"""
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_agente = {executor.submit(ag.enviar_mensagem, numero, mensagem): ag for ag in agentes}
+        for future in as_completed(future_to_agente):
+            ag = future_to_agente[future]
+            try:
+                future.result()
+            except Exception as e:
+                print(f"[{ag.nome}] Erro inesperado no envio: {e}")
 
-agentes_gti = carregar_agentes_do_env()
-print(f"Carregados {len(agentes_gti)} agentes")
 
-# Gera QR codes em paralelo
-#gerar_qr_parallel(agentes_gti, max_workers=5, modo="img")
+# ======================
+# Execução
+# ======================
 
-# Exibe dados resumidos
-#for ag in agentes_gti:
-    #ag.dados()
+# Conexão com o banco via .env
+server = os.getenv('SERVER')
+database = os.getenv('DATABASE')
+username = os.getenv('USERNAMEDB')
+password = os.getenv('PASSWORD')
+DB = (f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+      f"SERVER={server};"
+      f"DATABASE={database};"
+      f"UID={username};"
+      f"PWD={password};"
+      f"TrustServerCertificate=yes;")
+
+# Carrega agentes direto do banco
+agentes_gti = carregar_agentes_do_banco(DB)
+
+# Atualiza status de todos em paralelo
+atualizar_status_parallel(agentes_gti, max_workers=25)
+
+# Mostra status de cada agente
+for ag in agentes_gti:
+    ag.dados()
+
+# Exemplo de envio paralelo de mensagens (opcional)
+enviar_mensagens_parallel(agentes_gti, "5511954510423", "Mensagem teste 🚀", max_workers=15)

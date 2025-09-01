@@ -52,9 +52,12 @@ def conversar_automatica_parallel(agente1, agente2, max_turnos=10):
     print("🤖 Conversa automática encerrada.")
 
 
-def get_ia_response(user_message, historico, prompt_extra=""):
+def get_ia_response(user_message, historico=None, prompt_extra=""):
     if not user_message:
         return "🤔 Opa, não entendi sua mensagem."
+
+    if historico is None:
+        historico = []
 
     historico.append({"role": "user", "content": user_message})
 
@@ -88,6 +91,9 @@ def get_ia_response(user_message, historico, prompt_extra=""):
     except Exception as e:
         print(f"⚠️ Erro ao gerar resposta com Ollama: {e}")
         return "⚠️ Deu ruim aqui, não consegui pensar em nada 😅"
+
+
+
 
 def enviar_mensagem_segura(agente, numero, mensagem):
     """Tenta enviar mensagem, reconectando se necessário"""
@@ -136,7 +142,6 @@ def conversar(agente1, agente2):
 
 
 if __name__ == "__main__":
-    agentes_gti[0].dados()
-    agentes_gti[2].dados()
-    conversar(agentes_gti[0], agentes_gti[2])
-    #conversar(agentes_zapi[0], agentes_zapi[1])
+    msg = "ola"
+    ia = get_ia_response(msg, None, "Responda curto e natural, como WhatsApp.")
+    print(ia)
