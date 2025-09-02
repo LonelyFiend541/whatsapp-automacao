@@ -1,6 +1,5 @@
 import time
 import ollama
-from integration.api_GTI import agentes_gti
 from concurrent.futures import ThreadPoolExecutor, as_completed
 executor = ThreadPoolExecutor(max_workers=5)
 
@@ -110,29 +109,34 @@ def enviar_mensagem_segura(agente, numero, mensagem):
 def conversar(agente1, agente2):
     historico = []
     print("🤖 IA: Fala! Manda aí o que tá pegando (digite 'sair' pra encerrar).")
-    msg = input("Você: ")
-    enviar_mensagem_segura(agente1, agente2.numero, msg)
+    msg = input(f"{agente1.numero}: ")
     time.sleep(5)
     while True:
         if msg.lower() in ["sair", "exit", "quit"]:
             print("🤖 IA: Valeu, até a próxima! 👋")
             break
 
+        ag1 = enviar_mensagem_segura(agente1, agente2.numero, msg)
+        if not ag1:
+            print(f"Erro ao enviar mensagem.\n numero em analise: {agente1.numero}.")
+            break
+        historico.append(msg)
+        time.sleep(5)
+        print(f"{agente1.numero}: {msg}.")
         # Gera a resposta primeiro
-        resposta = get_ia_response(msg, historico, "Responda curto e natural, como WhatsApp.")
-        print(f"🤖 IA-9: {resposta}")
+        resposta = get_ia_response(msg, historico, "Responda curto e natural, como no WhatsApp.")
 
         # Envia a mensagem
-        enviar_mensagem_segura(agente2, agente1.numero, resposta)
+        ag2 = enviar_mensagem_segura(agente2, agente1.numero, resposta)
+        if not ag2:
+            print(f"Erro ao enviar mensagem.\n numero em analise: {agente2.numero}.")
+            break
+        historico.append(resposta)
+        print(f"🤖{agente2.numero}: {resposta}")
         time.sleep(5)
 
         # Atualiza a próxima mensagem (simulação de conversa contínua)
         msg = get_ia_response(resposta, historico, "Continue a conversa, <=120 caracteres")
-
-        # Envia a mensagem do usuário simulada pelo agente
-        enviar_mensagem_segura(agente1, agente2.numero, msg)
-        print(f"🤖 IA-8: {msg}")
-        time.sleep(5)
 
 
 

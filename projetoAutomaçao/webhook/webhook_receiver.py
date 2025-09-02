@@ -1,19 +1,51 @@
 import time
 import os
 import json
+import itertools
+from random import random, randrange
+import re
 from flask import Flask, request, jsonify
 from concurrent.futures import ThreadPoolExecutor
+from banco.dbo import carregar_agentes_do_banco, DB
 from integration.IA import get_ia_response
-from integration.api_GTI import agentes_conectados
+from integration.api_GTI import atualizar_status_parallel
 
+# -------------------- CONFIGURAÇÃO --------------------
 app = Flask(__name__)
 executor = ThreadPoolExecutor(max_workers=5)
 
 HISTORICO_DIR = "historicos"
 os.makedirs(HISTORICO_DIR, exist_ok=True)
 
+# -------------------- VARIÁVEIS GLOBAIS --------------------
+agentes_gti = []
+agentes_conectados = []
+
+# -------------------- FUNÇÕES RESPONDER GRUPO --------------------
+
+def responde_aleatorio(numero, resposta):
+    global agentes_conectados
+    if not agentes_conectados:
+        return None
+    ag = randrange(len(agentes_conectados))
+    agentes_conectados[ag].enviar_mensagem(numero, resposta)
+    return agentes_conectados[ag]
+
+# -------------------- INICIALIZAÇÃO DE AGENTES --------------------
+
+def inicializar_agentes():
+    global agentes_gti, agentes_conectados
+    agentes_gti = carregar_agentes_do_banco(DB)
+    atualizar_status_parallel(agentes_gti, max_workers=5)
+    agentes_conectados = [ag for ag in agentes_gti if ag.conectado]
+    return agentes_conectados
+
+# Inicializa agentes ao iniciar o app
+
+inicializar_agentes()
 
 # -------------------- HISTÓRICO --------------------
+
 def carregar_historico(chat_id: str):
     caminho = os.path.join(HISTORICO_DIR, f"{chat_id}.json")
     if os.path.exists(caminho):
@@ -24,7 +56,6 @@ def carregar_historico(chat_id: str):
             print(f"⚠️ Erro ao ler histórico de {chat_id}: {e}")
     return []
 
-
 def salvar_historico(chat_id: str, historico: list):
     caminho = os.path.join(HISTORICO_DIR, f"{chat_id}.json")
     try:
@@ -32,7 +63,6 @@ def salvar_historico(chat_id: str, historico: list):
             json.dump(historico, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Erro ao salvar histórico de {chat_id}: {e}")
-
 
 # -------------------- PROCESSAR MENSAGEM --------------------
 def processar_mensagem(chat_id, mensagem, from_me=False):
@@ -42,7 +72,7 @@ def processar_mensagem(chat_id, mensagem, from_me=False):
     historico = carregar_historico(chat_id)
 
     if not from_me:
-        # Adiciona mensagem do usuário ao histórico
+        # Salva mensagem do usuário
         historico.append({
             "role": "user",
             "content": mensagem,
@@ -50,57 +80,59 @@ def processar_mensagem(chat_id, mensagem, from_me=False):
         })
         salvar_historico(chat_id, historico)
 
-        # Resposta da IA
-        resposta = get_ia_response(mensagem, historico, "responda de forma educada e curta")
+        def responder():
+            resposta = get_ia_response(mensagem, historico, "responda de forma educada e curta")
+            if resposta:
+                if not agentes_conectados:
+                    inicializar_agentes()
+                agente = responde_aleatorio(chat_id, resposta)
+                if agente:
+                    historico.append({
+                        "role": "assistant",
+                        "content": resposta,
+                        "timestamp": int(time.time() * 1000)
+                    })
+                    salvar_historico(chat_id, historico)
+                    print(f"[Responder] {agente.nome} enviou mensagem para {chat_id}: {resposta}")
+                else:
+                    print(f"⚠️ Nenhum agente disponível para enviar mensagem para {chat_id}")
 
-        try:
-            agente = agentes_conectados[0]
-            if agente.conectado:
-                agente.enviar_mensagem(chat_id, resposta)
-                print(f"[Responder] Mensagem enviada para {chat_id}: {resposta}")
-            else:
-                print(f"⚠️ Agente {agente.numero} desconectado. Não foi possível enviar.")
-        except Exception as e:
-            print(f"⚠️ Erro ao enviar mensagem para {chat_id}: {e}")
+        executor.submit(responder)
     else:
         print(f"Mensagem do agente ({chat_id}): {mensagem}")
 
-
 # -------------------- FUNÇÕES AUXILIARES --------------------
-def extrair_chat_id(data):
-    # Primeiro tenta pegar dentro de "message"
-    if "message" in data and isinstance(data["message"], dict):
-        return str(data["message"].get("chatid") or data["message"].get("chatName") or "desconhecido")
-    # Caso não tenha "message", verifica no nível principal
-    return str(data.get("chatid") or data.get("chatName") or data.get("phone") or "desconhecido")
 
+def extrair_chat_id(data):
+    return str(
+        data.get("message", {}).get("chatid")
+        or data.get("message", {}).get("chatName")
+        or data.get("chatid")
+        or data.get("chatName")
+        or data.get("phone")
+        or "desconhecido"
+    )
 
 def extrair_mensagem(data):
-    # Primeiro verifica se está dentro de "message"
-    if "message" in data and isinstance(data["message"], dict):
-        if "text" in data["message"]:
-            return str(data["message"]["text"])
-    # Verifica no nível principal
-    if "text" in data and isinstance(data["text"], dict):
-        return data["text"].get("message", "")
-    elif "text" in data and isinstance(data["text"], str):
-        return data["text"]
-    elif "mensagem" in data:
+    if "message" in data and isinstance(data["message"], dict) and "text" in data["message"]:
+        return str(data["message"]["text"])
+    if "text" in data:
+        if isinstance(data["text"], dict):
+            return data["text"].get("message", "")
+        return str(data["text"])
+    if "mensagem" in data:
         return str(data["mensagem"])
     return ""
-
 
 # -------------------- ROTAS --------------------
 @app.route('/', methods=['GET'])
 def index():
     return "Servidor Flask rodando! Use POST em /webhook"
 
-
 @app.route('/webhook', methods=['POST'])
 def webhook_receiver():
     try:
         data = request.get_json(force=True)
-        print(data)
         print("[Webhook] Recebido:", json.dumps(data, indent=2, ensure_ascii=False))
     except Exception as e:
         print(f"⚠️ Erro ao ler JSON do webhook: {e}")
@@ -113,20 +145,80 @@ def webhook_receiver():
         print("⚠️ Chat ID não encontrado, mensagem ignorada")
         return jsonify({"status": "erro", "mensagem": "Chat ID inválido"}), 400
 
-    processar_mensagem(chat_id, mensagem, from_me=data.get("fromMe", False))
+    #processar_mensagem(chat_id, mensagem, from_me=data.get("fromMe", False))
     return jsonify({"status": "sucesso"}), 200
 
+@app.route('/webhook/messages/text', methods=['POST'])
+def webhook_messages_text():
+    try:
+        data = request.get_json(force=True)
+        print(f"webhook_messages_text: {data.get('message', {}).get("senderName", "")}: {data.get("message", {}).get("text", "")}")
+        sender = data.get("message", {}).get("sender", "")
+
+        # Extrai apenas os números antes do "@"
+        match = re.search(r'(\d+)@', sender)
+        numero = match.group(1) if match else None
+
+        chat_id = extrair_chat_id(data)
+        match = re.search(r'(\d+)@', chat_id)
+        nu_enviou = match.group(1) if match else None
+        mensagem = extrair_mensagem(data)
+
+        if chat_id == "desconhecido":
+            print("⚠️ Chat ID não encontrado, mensagem ignorada")
+            return jsonify({"status": "erro", "mensagem": "Chat ID inválido"}), 400
+
+        historico = carregar_historico(chat_id)
+        resposta = get_ia_response(mensagem, historico, "Converse de forma casual no WhatsApp")
+
+        agente = None
+
+        # Para grupos, apenas escolhe um agente conectado
+        if data.get('isGroup') and data.get('chatid') == '120363265780974598@g.us':
+            if agentes_conectados:
+                ag = randrange(len(agentes_conectados))
+                agente = agentes_conectados[ag]
+                agente.enviar_mensagem(chat_id, resposta)  # chat_id do grupo
+                print(f"{agente.nome} enviou mensagem para grupo familia alt")
+                if not agentes_conectados:
+                    print("⚠️ Nenhum agente conectado. Não foi possível responder.")
+                    return jsonify({"status": "erro", "mensagem": "Nenhum agente conectado"}), 503
+
+        elif not data.get('isGroup'):
+            # Mensagem individual: procura o agente responsável pelo número
+            agente = next((ag for ag in agentes_conectados if ag.numero == numero), None)
+            if agente:
+                agente.enviar_mensagem(nu_enviou, resposta)
+                print(f"[Responder] {agente.nome} enviou mensagem para {nu_enviou}: {resposta}")
+
+        # Atualiza histórico
+
+        if agente:
+            historico.append({
+                "role": "assistant",
+                "content": resposta,
+                "group": data.get('isGroup', False),
+                "timestamp": int(time.time() * 1000)
+            })
+
+            salvar_historico(chat_id, historico)
+        else:
+            print(f"⚠️ Nenhum agente disponível para enviar mensagem para {chat_id}")
+
+    except Exception as e:
+        print(f"⚠️ Erro ao processar messages/text: {e}")
+        return jsonify({"status": "erro"}), 400
+
+    return jsonify({"status": "sucesso"}), 200
 
 @app.route('/webhook/presence', methods=['POST'])
 def webhook_presence():
     try:
         data = request.get_json(force=True)
-        print(data)
     except Exception as e:
         print(f"⚠️ Erro ao processar presence: {e}")
         return jsonify({"status": "erro"}), 400
     return jsonify({"status": "sucesso"}), 200
-
 
 @app.route('/webhook/chats', methods=['POST'])
 def webhook_chats():
@@ -137,45 +229,6 @@ def webhook_chats():
         return jsonify({"status": "erro"}), 400
     return jsonify({"status": "sucesso"}), 200
 
-
-@app.route('/webhook/messages/text', methods=['POST'])
-def webhook_messages_text():
-    try:
-        data = request.get_json(force=True)
-        msg = data["message"]["text"]
-        usuario = data["message"]["senderName"]
-        print(f"Mensagem de usuario: {usuario}\nMensagem: {msg}")
-        chat_id = extrair_chat_id(data)
-        mensagem = extrair_mensagem(data)
-
-        if chat_id == "desconhecido":
-            print("⚠️ Chat ID não encontrado, mensagem ignorada")
-            return jsonify({"status": "erro", "mensagem": "Chat ID inválido"}), 400
-
-        # Carrega histórico (opcional)
-        historico = carregar_historico(chat_id)
-
-        # Gera resposta da IA
-        resposta = get_ia_response(mensagem, historico=historico, prompt_extra="Converse de forma casual no WhatsApp")
-
-        # Salva histórico atualizado
-        salvar_historico(chat_id, historico)
-
-        # Envia mensagem usando o agente conectado
-        agente = agentes_conectados[0]
-        if agente.conectado:
-            agente.enviar_mensagem(chat_id, resposta)
-            print(f"[Responder] Mensagem enviada para {chat_id}: {resposta}")
-        else:
-            print(f"⚠️ Agente {agente.numero} desconectado. Não foi possível enviar.")
-
-    except Exception as e:
-        print(f"⚠️ Erro ao processar messages/text: {e}")
-        return jsonify({"status": "erro"}), 400
-
-    return jsonify({"status": "sucesso"}), 200
-
-
 @app.route('/webhook/messages_update', methods=['POST'])
 def webhook_messages_update():
     try:
@@ -184,6 +237,45 @@ def webhook_messages_update():
         print(f"⚠️ Erro ao processar messages_update: {e}")
         return jsonify({"status": "erro"}), 400
     return jsonify({"status": "sucesso"}), 200
+
+@app.route('/webhook/history', methods=['POST'])
+def webhook_history():
+    data = request.get_json(force=True)
+    print("📜 Histórico recebido:", data)
+    return jsonify({"status": "ok", "mensagem": "Histórico processado com sucesso!"}), 200
+
+@app.route('/webhook/connection', methods=['POST'])
+def webhook_connection():
+    data = request.json
+    print("🔌 Evento de conexão recebido:", data)
+
+    # Exemplo: tratar status
+    status = data.get("status")
+    if status == "CONNECTED":
+        print("✅ Instância conectada com sucesso")
+    elif status == "DISCONNECTED":
+        print("⚠️ Instância desconectada")
+
+    return jsonify({"status": "sucesso", "mensagem": "Webhook de conexão recebido"}), 200
+
+@app.route('/webhook/contacts', methods=['POST'])
+def webhook_contacts():
+    try:
+        data = request.get_json(force=True)
+    except Exception as e:
+        print(f"⚠️ Erro ao processar messages_update: {e}")
+        return jsonify({"status": "erro"}), 400
+    return jsonify({"status": "sucesso"}), 200
+
+@app.route('/webhook/messages/error', methods=['POST'])
+def webhook_messages_error():
+    try:
+        data = request.get_json(force=True)
+    except Exception as e:
+        print(f"⚠️ Erro ao processar messages_update: {e}")
+        return jsonify({"status": "erro"}), 400
+    return jsonify({"status": "sucesso"}), 200
+
 
 
 # -------------------- RODAR APP --------------------

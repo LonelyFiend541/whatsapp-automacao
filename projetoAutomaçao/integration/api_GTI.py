@@ -7,13 +7,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
 import pyodbc
 from dotenv import load_dotenv
+from requests import session
+from websockets.asyncio.async_timeout import timeout
+from banco.dbo import carregar_agentes_do_banco, DB
 
 load_dotenv()
 BASE_URL = "https://api.gtiapi.workers.dev"
 
 
 class AgenteGTI:
-    def __init__(self, token, nome=None, timeout=10, debug=False):
+    def __init__(self, token=None, nome=None, timeout=10, debug=False):
         self.token = token
         self.nome = nome or "Agente GTI"
         self.numero = None
@@ -64,11 +67,11 @@ class AgenteGTI:
         try:
             resp = self.session.post(f"{BASE_URL}/send/text", json=payload, timeout=self.timeout)
             resp.raise_for_status()
-            print(f"[{self.nome}] Mensagem enviada para {numero}")
+            print(f"[{self.nome}] Mensagem enviada para {numero}:\n Mensagem : {mensagem}")
             return resp.json()
         except requests.RequestException as e:
             print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
-            return None
+            return False
 
     def exibir_qr(self):
         """Exibe QR code como imagem"""
@@ -128,26 +131,51 @@ class AgenteGTI:
 # Funções auxiliares
 # ======================
 
-def carregar_agentes_do_banco(conn_str):
-    """
-    Carrega agentes direto do banco e retorna lista de AgenteGTI
-    """
-    query = """
-        SELECT TELEFONE, SENHA
-        FROM [NEWWORK].[dbo].[ROTA]
-        WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%'
-    """
-    agentes = []
+
+def atualizar_webhook(agente, url):
+    headers = {
+        "token": agente.token,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "enabled": True,
+        "url": url,
+        "events": [
+            "connection",
+            "history",
+            "messages",
+            "messages_update",
+            "call",
+            "contacts",
+            "presence",
+            "groups",
+            "labels",
+            "chats",
+            "chat_labels",
+            "blocks",
+            "leads",
+            "wasSentByApi",
+            "wasNotSentByApi",
+            "fromMeYes",
+            "fromMeNo",
+            "isGroupYes",
+            "IsGroupNo"
+        ],
+        "excludeMessages": [],
+        "addUrlEvents": True,
+        "addUrlTypesMessages": True,
+        "action": "add"
+    }
+
     try:
-        with pyodbc.connect(conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                for nome_instancia, token in cursor.fetchall():
-                    agentes.append(AgenteGTI(token=token, nome=nome_instancia))
-        return agentes
-    except Exception as e:
-        print(f"❌ Erro ao carregar agentes: {e}")
-        return []
+        resp = requests.post(f"{BASE_URL}/webhook", json=payload, headers=headers, timeout=30)
+        resp.raise_for_status()
+        print(f"Webhook atualizado com sucesso para {payload['url']}.")
+        return resp.json()
+    except requests.RequestException as e:
+        print(f"⚠️ Erro ao atualizar Webhook: {e}")
+        return None
 
 
 def atualizar_status_parallel(agentes, max_workers=10):
@@ -161,7 +189,6 @@ def atualizar_status_parallel(agentes, max_workers=10):
             except Exception as e:
                 print(f"[{ag.nome}] Erro inesperado ao atualizar: {e}")
 
-
 def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=10):
     """Envia mensagens em paralelo para todos os agentes"""
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -173,7 +200,6 @@ def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=10):
             except Exception as e:
                 print(f"[{ag.nome}] Erro inesperado no envio: {e}")
 
-
 # ======================
 # Execução
 # ======================
@@ -183,22 +209,20 @@ server = os.getenv('SERVER')
 database = os.getenv('DATABASE')
 username = os.getenv('USERNAMEDB')
 password = os.getenv('PASSWORD')
-DB = (f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-      f"SERVER={server};"
-      f"DATABASE={database};"
-      f"UID={username};"
-      f"PWD={password};"
-      f"TrustServerCertificate=yes;")
+
 
 # Carrega agentes direto do banco
-agentes_gti = carregar_agentes_do_banco(DB)
-
-# Atualiza status de todos em paralelo
-atualizar_status_parallel(agentes_gti, max_workers=25)
-
-# Mostra status de cada agente
+'''agentes_gti = carregar_agentes_do_banco(DB)
 for ag in agentes_gti:
-    ag.dados()
+    atualizar_webhook(ag, "https://88b8b5974561.ngrok-free.app/webhook")'''
+# Atualiza status de todos em paralelo
+'''atualizar_status_parallel(agentes_gti, max_workers=25)
+agentes_conectados = []'''
+# Mostra status de cada agente
+'''for ag in agentes_gti:
+    if ag.conectado:
+        agentes_conectados.append(ag.conectado)
+        ag.dados()
+# Exemplo de envio paralelo de mensagens (opcional)'''
+#enviar_mensagens_parallel(agentes_gti, "5511954510423", "Mensagem teste 🚀", max_workers=15)
 
-# Exemplo de envio paralelo de mensagens (opcional)
-enviar_mensagens_parallel(agentes_gti, "5511954510423", "Mensagem teste 🚀", max_workers=15)
