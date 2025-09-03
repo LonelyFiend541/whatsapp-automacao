@@ -4,7 +4,7 @@ import json
 import itertools
 from random import random, randrange
 import re
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from concurrent.futures import ThreadPoolExecutor
 from banco.dbo import carregar_agentes_do_banco, DB
 from integration.IA import get_ia_response
@@ -65,6 +65,48 @@ def salvar_historico(chat_id: str, historico: list):
         print(f"⚠️ Erro ao salvar histórico de {chat_id}: {e}")
 
 # -------------------- PROCESSAR MENSAGEM --------------------
+
+def tratar_mensagem(data):
+    chat_id = extrair_chat_id(data)
+    mensagem = extrair_mensagem(data)
+    is_group = data.get("isGroup", False)
+
+    if chat_id == "desconhecido" or not mensagem:
+        return None  # ignora
+
+    # 1. Carregar histórico
+    historico = carregar_historico(chat_id)
+
+    # 2. Gerar resposta
+    resposta = get_ia_response(mensagem, historico, "Converse de forma casual no WhatsApp")
+
+    # 3. Escolher agente
+    agente = None
+    if is_group:
+        agente = responde_aleatorio(chat_id, resposta)
+    else:
+        sender = data.get("message", {}).get("sender", "")
+        match = re.search(r'(\d+)@', sender)
+        numero = match.group(1) if match else None
+        agente = next((ag for ag in agentes_conectados if ag.numero == numero), None)
+
+    # 4. Enviar resposta
+    if agente:
+        agente.enviar_mensagem(chat_id, resposta)
+        print(f"✏️{agente.numero}: {resposta}📝")
+
+        # 5. Atualizar histórico
+        historico.append({
+            "role": "assistant",
+            "content": resposta,
+            "group": is_group,
+            "timestamp": int(time.time() * 1000)
+        })
+        salvar_historico(chat_id, historico)
+        return resposta
+
+    return None
+
 def processar_mensagem(chat_id, mensagem, from_me=False):
     if not mensagem:
         return
@@ -126,8 +168,9 @@ def extrair_mensagem(data):
 
 # -------------------- ROTAS --------------------
 @app.route('/', methods=['GET'])
+@app.route("/index.html")
 def index():
-    return "Servidor Flask rodando! Use POST em /webhook"
+    return render_template('index.html')
 
 @app.route('/webhook', methods=['POST'])
 def webhook_receiver():
@@ -138,72 +181,15 @@ def webhook_receiver():
         print(f"⚠️ Erro ao ler JSON do webhook: {e}")
         return jsonify({"status": "erro", "mensagem": "JSON inválido"}), 400
 
-    chat_id = extrair_chat_id(data)
-    mensagem = extrair_mensagem(data)
 
-    if chat_id == "desconhecido":
-        print("⚠️ Chat ID não encontrado, mensagem ignorada")
-        return jsonify({"status": "erro", "mensagem": "Chat ID inválido"}), 400
-
-    #processar_mensagem(chat_id, mensagem, from_me=data.get("fromMe", False))
     return jsonify({"status": "sucesso"}), 200
 
 @app.route('/webhook/messages/text', methods=['POST'])
 def webhook_messages_text():
     try:
         data = request.get_json(force=True)
-        print(f"webhook_messages_text: {data.get('message', {}).get("senderName", "")}: {data.get("message", {}).get("text", "")}")
-        sender = data.get("message", {}).get("sender", "")
-
-        # Extrai apenas os números antes do "@"
-        match = re.search(r'(\d+)@', sender)
-        numero = match.group(1) if match else None
-
-        chat_id = extrair_chat_id(data)
-        match = re.search(r'(\d+)@', chat_id)
-        nu_enviou = match.group(1) if match else None
-        mensagem = extrair_mensagem(data)
-
-        if chat_id == "desconhecido":
-            print("⚠️ Chat ID não encontrado, mensagem ignorada")
-            return jsonify({"status": "erro", "mensagem": "Chat ID inválido"}), 400
-
-        historico = carregar_historico(chat_id)
-        resposta = get_ia_response(mensagem, historico, "Converse de forma casual no WhatsApp")
-
-        agente = None
-
-        # Para grupos, apenas escolhe um agente conectado
-        if data.get('isGroup') and data.get('chatid') == '120363265780974598@g.us':
-            if agentes_conectados:
-                ag = randrange(len(agentes_conectados))
-                agente = agentes_conectados[ag]
-                agente.enviar_mensagem(chat_id, resposta)  # chat_id do grupo
-                print(f"{agente.nome} enviou mensagem para grupo familia alt")
-                if not agentes_conectados:
-                    print("⚠️ Nenhum agente conectado. Não foi possível responder.")
-                    return jsonify({"status": "erro", "mensagem": "Nenhum agente conectado"}), 503
-
-        elif not data.get('isGroup'):
-            # Mensagem individual: procura o agente responsável pelo número
-            agente = next((ag for ag in agentes_conectados if ag.numero == numero), None)
-            if agente:
-                agente.enviar_mensagem(nu_enviou, resposta)
-                print(f"[Responder] {agente.nome} enviou mensagem para {nu_enviou}: {resposta}")
-
-        # Atualiza histórico
-
-        if agente:
-            historico.append({
-                "role": "assistant",
-                "content": resposta,
-                "group": data.get('isGroup', False),
-                "timestamp": int(time.time() * 1000)
-            })
-
-            salvar_historico(chat_id, historico)
-        else:
-            print(f"⚠️ Nenhum agente disponível para enviar mensagem para {chat_id}")
+        print(f"📩[webhook_messages_text]: {data.get('message', {}).get("sender", "")}: {data.get("message", {}).get("text", "")}📩")
+        tratar_mensagem(data)
 
     except Exception as e:
         print(f"⚠️ Erro ao processar messages/text: {e}")
@@ -241,14 +227,12 @@ def webhook_messages_update():
 @app.route('/webhook/history', methods=['POST'])
 def webhook_history():
     data = request.get_json(force=True)
-    print("📜 Histórico recebido:", data)
     return jsonify({"status": "ok", "mensagem": "Histórico processado com sucesso!"}), 200
 
 @app.route('/webhook/connection', methods=['POST'])
 def webhook_connection():
     data = request.json
     print("🔌 Evento de conexão recebido:", data)
-
     # Exemplo: tratar status
     status = data.get("status")
     if status == "CONNECTED":

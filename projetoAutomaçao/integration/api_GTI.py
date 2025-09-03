@@ -9,7 +9,6 @@ import pyodbc
 from dotenv import load_dotenv
 from requests import session
 from websockets.asyncio.async_timeout import timeout
-from banco.dbo import carregar_agentes_do_banco, DB
 
 load_dotenv()
 BASE_URL = "https://api.gtiapi.workers.dev"
@@ -67,37 +66,30 @@ class AgenteGTI:
         try:
             resp = self.session.post(f"{BASE_URL}/send/text", json=payload, timeout=self.timeout)
             resp.raise_for_status()
-            print(f"[{self.nome}] Mensagem enviada para {numero}:\n Mensagem : {mensagem}")
             return resp.json()
         except requests.RequestException as e:
             print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
             return False
 
-    def exibir_qr(self):
-        """Exibe QR code como imagem"""
-        if not self.qrcode:
-            print(f"[{self.nome}] Nenhum QR code disponível")
-            return
-        try:
-            img_bytes = base64.b64decode(self.qrcode)
-            img = Image.open(BytesIO(img_bytes))
-            img.show()
-        except Exception as e:
-            print(f"[{self.nome}] Erro ao abrir QR code: {e}")
+    def abrir_qr(self, qr_base64):
+        import base64
+        import cv2
+        import numpy as np
 
-    def gerar_qr_terminal(self, qr_string=None):
-        """Exibe QR code no terminal"""
-        qr_string = qr_string or self.qrcode
-        if not qr_string:
-            return
-        import qrcode
-        qr = qrcode.QRCode(version=1, box_size=1, border=1)
-        qr.add_data(qr_string)
-        qr.make(fit=True)
-        for linha in qr.get_matrix():
-            print("".join(["██" if celula else "  " for celula in linha]))
+        # Base64 do QR Code
+        # Decodifica Base64 em bytes
+        image_data = base64.b64decode(qr_base64)
+        image_np = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
 
-    def gerar_qr(self, modo="img"):
+        # Exibe a imagem em uma janela
+        cv2.imshow(f"QR Code {self.nome} ", img)
+        print("Pressione qualquer tecla para fechar a imagem...")
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        return True
+
+    def gerar_qr(self):
         """Solicita geração de QR code"""
         try:
             resp = self.session.post(f"{BASE_URL}/instance/connect", timeout=self.timeout)
@@ -115,10 +107,8 @@ class AgenteGTI:
 
             if self.qrcode:
                 print(f"\n[{self.nome}] QR Code disponível")
-                if modo == "terminal":
-                    self.gerar_qr_terminal(self.qrcode)
-                else:
-                    self.exibir_qr()
+                self.abrir_qr(qr_base64)
+
         except requests.RequestException as e:
             print(f"[{self.nome}] Erro ao gerar QR code: {e}")
 
@@ -126,11 +116,9 @@ class AgenteGTI:
         """Mostra dados básicos"""
         print(f"{self.nome} | Número: {self.numero} | Conectado: {self.conectado}")
 
-
 # ======================
 # Funções auxiliares
 # ======================
-
 
 def atualizar_webhook(agente, url):
     headers = {
@@ -177,6 +165,52 @@ def atualizar_webhook(agente, url):
         print(f"⚠️ Erro ao atualizar Webhook: {e}")
         return None
 
+def apagar_webhook(agente, url, id):
+    headers = {
+        "token": agente.token,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "enabled": True,
+        "url": url,
+        "events": [
+            "connection",
+            "history",
+            "messages",
+            "messages_update",
+            "call",
+            "contacts",
+            "presence",
+            "groups",
+            "labels",
+            "chats",
+            "chat_labels",
+            "blocks",
+            "leads",
+            "wasSentByApi",
+            "wasNotSentByApi",
+            "fromMeYes",
+            "fromMeNo",
+            "isGroupYes",
+            "IsGroupNo"
+        ],
+        "excludeMessages": [],
+        "addUrlEvents": True,
+        "addUrlTypesMessages": True,
+        "action": "delete",
+        "id": id
+
+    }
+
+    try:
+        resp = requests.post(f"{BASE_URL}/webhook", json=payload, headers=headers, timeout=30)
+        resp.raise_for_status()
+        print(f"Webhook {payload['url']} apagado com sucesso.")
+        return resp.json()
+    except requests.RequestException as e:
+        print(f"⚠️ Erro ao apagar Webhook: {e}")
+        return None
 
 def atualizar_status_parallel(agentes, max_workers=10):
     """Atualiza status em paralelo"""
@@ -199,30 +233,4 @@ def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=10):
                 future.result()
             except Exception as e:
                 print(f"[{ag.nome}] Erro inesperado no envio: {e}")
-
-# ======================
-# Execução
-# ======================
-
-# Conexão com o banco via .env
-server = os.getenv('SERVER')
-database = os.getenv('DATABASE')
-username = os.getenv('USERNAMEDB')
-password = os.getenv('PASSWORD')
-
-
-# Carrega agentes direto do banco
-'''agentes_gti = carregar_agentes_do_banco(DB)
-for ag in agentes_gti:
-    atualizar_webhook(ag, "https://88b8b5974561.ngrok-free.app/webhook")'''
-# Atualiza status de todos em paralelo
-'''atualizar_status_parallel(agentes_gti, max_workers=25)
-agentes_conectados = []'''
-# Mostra status de cada agente
-'''for ag in agentes_gti:
-    if ag.conectado:
-        agentes_conectados.append(ag.conectado)
-        ag.dados()
-# Exemplo de envio paralelo de mensagens (opcional)'''
-#enviar_mensagens_parallel(agentes_gti, "5511954510423", "Mensagem teste 🚀", max_workers=15)
 

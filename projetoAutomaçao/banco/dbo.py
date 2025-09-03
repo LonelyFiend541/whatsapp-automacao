@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 from pip._internal.utils.misc import tabulate
 
-
 # Carrega variáveis do .env
 load_dotenv()
 
@@ -111,6 +110,49 @@ def consulta_visual(query):
     else:
         print("Nenhum registro encontrado.")
 
+def update_e_confirmar(conn, tabela, coluna, valor, id_col, id_val):
+    """
+    Atualiza uma coluna de uma tabela e pergunta se deseja confirmar ou reverter a alteração.
+
+    :param conn: conexão pyodbc
+    :param tabela: nome da tabela
+    :param coluna: nome da coluna a atualizar
+    :param valor: novo valor
+    :param id_col: nome da coluna de identificação (ex: ID)
+    :param id_val: valor do ID a ser atualizado
+    """
+    cursor = conn.cursor()
+
+    # Mostrar valor atual
+    query_select = f"SELECT {coluna} FROM {tabela} WHERE {id_col} = ?"
+    cursor.execute(query_select, (id_val,))
+    resultado = cursor.fetchone()
+    if resultado:
+        print(f"📌 Valor atual: {resultado[0]}")
+    else:
+        print("⚠️ Nenhum registro encontrado.")
+        cursor.close()
+        return
+
+    # Atualizar valor
+    query_update = f"UPDATE {tabela} SET {coluna} = ? WHERE {id_col} = ?"
+    cursor.execute(query_update, (valor, id_val))
+
+    # Mostrar valor após update
+    cursor.execute(query_select, (id_val,))
+    novo_resultado = cursor.fetchone()
+    print(f"📌 Novo valor: {novo_resultado[0]}")
+
+    # Perguntar se deseja confirmar ou reverter
+    if novo_resultado[0] == valor:
+        conn.commit()
+        print("✅ Alteração confirmada no banco.")
+    else:
+        conn.rollback()
+        print("⚠️ Alteração revertida.")
+
+    cursor.close()
+
 def consulta(query):
     """
     Executa qualquer query SELECT e imprime todos os resultados.
@@ -121,6 +163,7 @@ def consulta(query):
         if linhas:
             for linha in linhas:
                 print(linha)  # Imprime todas as colunas da linha
+            return linhas
         else:
             print("Nenhum registro encontrado.")
     except Exception as e:
@@ -136,7 +179,7 @@ def carregar_agentes_do_banco(conn_str):
     query = """
         SELECT TELEFONE, SENHA
         FROM [NEWWORK].[dbo].[ROTA]
-        WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%'
+        WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%' OR TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'WD%'
     """
     agentes = []
     try:
@@ -152,17 +195,15 @@ def carregar_agentes_do_banco(conn_str):
         print(f"❌ Erro ao carregar agentes: {e}")
         return []
 
+query = "SELECT ID FROM [NEWWORK].[dbo].[ROTA] WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%' "
+#update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='GTI_2813', id_col="ID",id_val=2813)
+i = 0
+agentes = carregar_agentes_do_banco(DB)
+for agente in agentes:
+    if agente.conectado:
+        i = i + 1
 
-# Uso da função
-'''estrutura = listar_tabelas_colunas()
-
-query = "select SENHA, TELEFONE from [NEWWORK].[dbo].[ROTA] WHERE TELEFONE LIKE 'GTI%'"
-instancias = cursor.execute(query)
-
-for linha in instancias:
-    print(f"{linha[0]}={linha[1]}")'''
-
-#consulta_visual(query)
-
+print(i)
 cursor.close()
 conn.close()
+
