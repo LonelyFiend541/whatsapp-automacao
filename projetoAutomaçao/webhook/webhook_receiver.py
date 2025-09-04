@@ -7,7 +7,7 @@ import re
 from flask import Flask, request, jsonify, render_template
 from concurrent.futures import ThreadPoolExecutor
 from banco.dbo import carregar_agentes_do_banco, DB
-from integration.IA import get_ia_response
+from integration.IA import get_ia_response_ollama
 from integration.api_GTI import atualizar_status_parallel
 
 # -------------------- CONFIGURAÇÃO --------------------
@@ -78,7 +78,7 @@ def tratar_mensagem(data):
     historico = carregar_historico(chat_id)
 
     # 2. Gerar resposta
-    resposta = get_ia_response(mensagem, historico, "Converse de forma casual no WhatsApp")
+    resposta = get_ia_response_ollama(mensagem, historico, "Converse de forma casual no WhatsApp")
 
     # 3. Escolher agente
     agente = None
@@ -123,7 +123,7 @@ def processar_mensagem(chat_id, mensagem, from_me=False):
         salvar_historico(chat_id, historico)
 
         def responder():
-            resposta = get_ia_response(mensagem, historico, "responda de forma educada e curta")
+            resposta = get_ia_response_ollama(mensagem, historico, "responda de forma educada e curta")
             if resposta:
                 if not agentes_conectados:
                     inicializar_agentes()

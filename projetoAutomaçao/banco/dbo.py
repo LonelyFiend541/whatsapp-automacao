@@ -1,4 +1,5 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 import pyodbc
 import os
 from dotenv import load_dotenv
@@ -169,41 +170,113 @@ def consulta(query):
     except Exception as e:
         print(f"Erro ao executar consulta: {e}")
 
-def carregar_agentes_do_banco(conn_str):
+def carregar_agentes_do_banco(conn_str, max_workers=10):
     """
-    Carrega agentes direto do banco e retorna lista de AgenteGTI
+    Carrega agentes do banco e cria objetos AgenteGTI em paralelo.
     """
-    # Import local para evitar circular import
     from integration.api_GTI import AgenteGTI
 
     query = """
         SELECT TELEFONE, SENHA
         FROM [NEWWORK].[dbo].[ROTA]
-        WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%' OR TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'WD%'
+        WHERE SERVICO='MATURACAO' 
+          AND (TELEFONE LIKE 'GTI%' OR TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'WD%')
     """
-    agentes = []
+
     try:
         with pyodbc.connect(conn_str) as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query)
-                for telefone, senha in cursor.fetchall():
-                    nome_instancia = telefone  # na prática é o nome da instância
-                    token = senha  # na prática é o token
-                    agentes.append(AgenteGTI(nome=nome_instancia, token=token))
+                registros = list(cursor)  # Pegamos todos, mas ainda rápido
+
+        agentes = []
+
+        def criar_agente(telefone_senha):
+            telefone, senha = telefone_senha
+            return AgenteGTI(nome=telefone, token=senha)
+
+        # Cria agentes em paralelo
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            agentes = list(executor.map(criar_agente, registros))
+
+        return agentes
+
+    except Exception as e:
+        print(f"❌ Erro ao carregar agentes: {e}")
+        return []
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import aioodbc
+
+async def carregar_agentes_do_banco_async(max_workers=10):
+    """
+    Carrega agentes do banco de forma assíncrona e cria objetos AgenteGTI em paralelo.
+    """
+    from integration.api_GTI import AgenteGTI
+    query = """
+        SELECT TELEFONE, SENHA
+        FROM [NEWWORK].[dbo].[ROTA]
+        WHERE SERVICO='MATURACAO' 
+          AND (TELEFONE LIKE 'GTI%' OR TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'WD%')
+    """
+    try:
+        dsn = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv("SERVER")};DATABASE={os.getenv("DATABASE")};UID={os.getenv("USERNAMEDB")};PWD={os.getenv("PASSWORD")};TrustServerCertificate=yes;'
+        async with aioodbc.connect(dsn=dsn, autocommit=True) as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(query)
+                registros = await cursor.fetchall()
+        def criar_agente(telefone_senha):
+            telefone, senha = telefone_senha
+            return AgenteGTI(nome=telefone, token=senha)
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            agentes = await asyncio.gather(
+                *[loop.run_in_executor(executor, criar_agente, r) for r in registros]
+            )
         return agentes
     except Exception as e:
         print(f"❌ Erro ao carregar agentes: {e}")
         return []
 
+async def carregar_agentes_async_do_banco_async():
+    """
+    Carrega agentes do banco de forma assíncrona e cria objetos AgenteGTI em paralelo.
+    """
+    from integration.api_GTI import AgenteGTIAsync
+    query = """
+        SELECT TELEFONE, SENHA
+        FROM [NEWWORK].[dbo].[ROTA]
+        WHERE SERVICO='MATURACAO' 
+          AND (TELEFONE LIKE 'GTI%' OR TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'WD%')
+    """
+    try:
+        dsn = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv("SERVER")};DATABASE={os.getenv("DATABASE")};UID={os.getenv("USERNAMEDB")};PWD={os.getenv("PASSWORD")};TrustServerCertificate=yes;'
+        async with aioodbc.connect(dsn=dsn, autocommit=True) as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(query)
+                registros = await cursor.fetchall()
+
+        async def criar_agente(telefone_senha):
+            telefone, senha = telefone_senha
+            agente = AgenteGTIAsync(nome=telefone, token=senha)
+            return await agente.async_init()  # garante inicialização
+
+        # cria todos em paralelo
+        agentes = await asyncio.gather(*(criar_agente(r) for r in registros))
+        return agentes
+
+    except Exception as e:
+        print(f"❌ Erro ao carregar agentes: {e}")
+        return []
+
+
+# Exemplo de uso
+# asyncio.run(carregar_agentes_do_banco_async())
+
+
 query = "SELECT ID FROM [NEWWORK].[dbo].[ROTA] WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%' "
 #update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='GTI_2813', id_col="ID",id_val=2813)
-i = 0
-agentes = carregar_agentes_do_banco(DB)
-for agente in agentes:
-    if agente.conectado:
-        i = i + 1
 
-print(i)
 cursor.close()
 conn.close()
 

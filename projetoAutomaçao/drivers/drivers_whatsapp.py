@@ -4,7 +4,6 @@ import sys
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-
 import contatos.contatos
 from contatos.contatos import *
 import until.utilitys
