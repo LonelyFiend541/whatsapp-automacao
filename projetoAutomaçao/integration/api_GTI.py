@@ -4,6 +4,8 @@ import random
 import time
 from io import BytesIO
 import re
+
+import keyboard
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
@@ -114,7 +116,7 @@ class AgenteGTI:
             if key == ord('r') or key == ord('R'):
                 cv2.destroyAllWindows()
                 print(f"[{self.nome}] Recarregando QR...")
-                self.gerar_qr()   # chama de novo para pegar QR atualizado
+                self.gerar_qr()  # chama de novo para pegar QR atualizado
                 return None
             else:
                 cv2.destroyAllWindows()
@@ -124,7 +126,9 @@ class AgenteGTI:
         """Mostra dados básicos"""
         print(f"{self.nome} | Número: {self.numero} | Conectado: {self.conectado}")
 
+
 import httpx
+
 
 class AgenteGTIAsync:
     def __init__(self, token=None, nome=None, timeout=10):
@@ -171,15 +175,14 @@ class AgenteGTIAsync:
             "readchat": True,
             "delay": 0
         }
-
+        resp = None
         try:
             resp = await self.client.post(f"{BASE_URL}/send/text", json=payload)
             resp.raise_for_status()
-            return resp.json()
+            return True, resp.json()
         except httpx.RequestError as e:
             print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
-            return False
-
+            return False, resp.json()
 
 # ======================
 # Funções auxiliares
@@ -288,6 +291,7 @@ def atualizar_status_parallel(agentes, max_workers=20):  # Aumente max_workers
             except Exception as e:
                 print(f"[{ag.nome}] Erro inesperado ao atualizar: {e}")
 
+
 def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=20):  # Aumente max_workers
     """Envia mensagens em paralelo para todos os agentes"""
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -298,6 +302,7 @@ def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=20):  # Aum
                 future.result()
             except Exception as e:
                 print(f"[{ag.nome}] Erro inesperado no envio: {e}")
+
 
 def qr():
     import cv2
@@ -327,7 +332,24 @@ def qr():
             print("sair")
             break
 
-
-
-
-
+#funcao  de teste
+def trye ():
+    headers = ({"token": "33364b4d-f7d6-44a4-95c8-dafc4a801365",
+                "Content-Type": "application/json"})
+    payload = {
+                "number": 5511976131029,
+                "text": 'ola',
+                "linkPreview": False,
+                "replyid": "",
+                "mentions": "",
+                "readchat": True,
+                "delay": 0
+            }
+    resp = None
+    try:
+        resp = requests.post(f"{BASE_URL}/send/text", json=payload, headers=headers, timeout=30)
+        resp.raise_for_status()
+        return True, resp.json()
+    except requests.RequestException as e:
+        print(f"[] Erro ao enviar mensagem: {e}")
+        return False, resp.json()

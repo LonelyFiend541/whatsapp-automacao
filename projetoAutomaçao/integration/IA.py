@@ -1,7 +1,10 @@
+import datetime
 import os
 import random
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import keyboard
+from click import prompt
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -18,19 +21,23 @@ executor = ThreadPoolExecutor(max_workers=20)
 # ==========================
 # Função delay assíncrono
 # ==========================
-async def delay_ms_async(test_mode=False):
-    await asyncio.sleep(0.1 if test_mode else random.randint(60, 600))
+async def delay_ms_async(min, test_mode=False):
+
+    min *= 60
+    await asyncio.sleep(0.1 if test_mode else min)
+    return True
 
 # ==========================
 # Função de envio assíncrono de mensagem
 # ==========================
 async def enviar_mensagem_async(agente, numero, mensagem):
+    resultado = None
     try:
-        resultado = await agente.enviar_mensagem(numero, mensagem)
-        return bool(resultado)
+        bol, resultado = await agente.enviar_mensagem(numero, mensagem)
+        return bol, resultado
     except Exception as e:
         print(f"[{agente.nome}] Erro ao enviar mensagem async: {e}")
-        return False
+        return False, resultado
 
 # ==========================
 # Função para gerar resposta do Gemini
@@ -47,8 +54,11 @@ def get_ia_response_gemini(user_message, historico=None, prompt_extra=""):
         historico = historico[-3:]
         historico.insert(0, {"role": "system", "content": f"Resumo: {resumo[:150]}..."})
 
-    contexto = "\n".join([f"{m['role']}: {m['content']}" for m in historico])
-    prompt = f"{prompt_extra}\n{contexto}\nuser: {user_message}\nassistant:"
+    contexto = f"\n".join([f"{m['role']}: {m['content']}" for m in historico])
+    prompt = 'Você é um amigo virtual que conversa no WhatsApp.\n Responda curto, casual, com gírias e emojis.\n Máx 60 caracteres.\n Considere o contexto e evite repetir.'
+    prompt = prompt + f"{prompt_extra}\n{contexto}\nuser: {user_message}"
+
+
 
     try:
         response = client.models.generate_content(
@@ -63,9 +73,6 @@ def get_ia_response_gemini(user_message, historico=None, prompt_extra=""):
         print(f"⚠️ Erro IA Gemini: {e}")
         return "⚠️ Deu ruim aqui 😅"
 
-# ==========================
-# Função para gerar resposta do Ollama
-# ==========================
 def get_ia_response_ollama(user_message, historico=None, prompt_extra=""):
     if not user_message:
         return "🤔 Não entendi sua mensagem."
@@ -74,60 +81,97 @@ def get_ia_response_ollama(user_message, historico=None, prompt_extra=""):
     if len(historico) > 3:
         resumo = " ".join([m["content"] for m in historico[:-3]])
         historico = historico[-3:]
-        historico.insert(0, {"role": "system", "content": f"Resumo: {resumo[:150]}..."})
+        historico.insert(0, {
+            "role": "system",
+            "content": f"Resumo: {resumo[:150]}..."
+        })
 
-    mensagens = [{"role": "system", "content": (
-        "Você é um amigo virtual que conversa no WhatsApp.\n"
-        "Responda curto, casual, com gírias e emojis.\n"
-        "Máx 60 caracteres.\n"
-        "Considere o contexto e evite repetir."
-    )}]
+    mensagens = [{
+        "role": "system",
+        "content": (
+            "Você é um amigo virtual que conversa no WhatsApp.\n"
+            "Responda curto, casual, com gírias e emojis.\n"
+            "Máx 60 caracteres.\n"
+            "Considere o contexto e evite repetir."
+        )
+    }]
+
     if prompt_extra:
         mensagens.append({"role": "system", "content": prompt_extra})
-    mensagens.extend(historico)
+
+    # Converte histórico para o formato correto
+    for msg in historico:
+        mensagens.append({
+            "role": "user" if msg["role"].startswith("agente1") else "assistant",
+            "content": msg["content"]
+        })
+
+    # Adiciona última fala do usuário
     mensagens.append({"role": "user", "content": user_message})
 
     try:
         response = ollama.chat(model="llama3.2:1b", messages=mensagens)
-        return response.get("message", {}).get("content", "").strip() or "😅 Não consegui pensar em nada agora."
+        return (
+            response.get("message", {}).get("content", "").strip()
+            or "😅 Não consegui pensar em nada agora."
+        )
     except Exception as e:
         print(f"⚠️ Erro IA: {e}")
         return "⚠️ Deu ruim aqui 😅"
 
 # ==========================
 # Loop de conversa assíncrono
-# ==========================
-async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False):
+# ========================
+async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False, get_ia_response=get_ia_response_ollama):
     historico = []
     print(f"🤖 Iniciando conversa entre {agente1.nome} e {agente2.nome}")
 
-    msg = await asyncio.to_thread(get_ia_response_gemini, " ", historico, "Inicie uma conversa casual")
+    # Agente 1 inicia
+    msg = await asyncio.to_thread(get_ia_response, " ", historico, "Inicie uma conversa casual")
     count1, count2 = 0, 0
 
-    for turno in range(max_turnos):
+    for _ in range(max_turnos):
         # Agente 1 envia
-        enviado = await enviar_mensagem_async(agente1, agente2.numero, msg)
+        enviado, resultado = await enviar_mensagem_async(agente1, agente2.numero, msg)
         if not enviado:
-            print(f"{agente1.nome} falhou no envio.")
-            print(f"{agente1.nome}: enviou {count1} mensagens.")
-
+            print(f"{agente1.nome} falhou no envio. ({count1} msgs enviadas)")
+            print(f"{agente2.nome}: {resultado['message']}")
             break
-        historico.append({"role": "user", "content": msg})
-        print(f"{agente1.nome}: {msg} → {agente2.nome}")
+        historico.append({"role": "assistant", "content": msg})
+        print(f"{agente1.nome}: {msg} → {agente2.nome} {datetime.datetime.now().strftime('%H:%M:%S')}")
         count1 += 1
-        await delay_ms_async(test_mode)
 
-        # Agente 2 responde
-        resposta = await asyncio.to_thread(get_ia_response_gemini, msg, historico, "Responda curto e natural")
-        enviado = await enviar_mensagem_async(agente2, agente1.numero, resposta)
+        # já dispara a resposta do agente 2 em paralelo
+        tarefa_resposta2 = asyncio.create_task(
+            asyncio.to_thread(get_ia_response, msg, historico, "Responda curto e natural (<=80 caracteres)")
+        )
+
+        min = random.randint(1, 10)
+        print(f"Proxima mensagem do {agente2.nome} em {min} minutos para {agente1.nome} {datetime.datetime.now().strftime('%H:%M:%S')}")
+        await delay_ms_async(min, test_mode)
+
+        # pega a resposta (se já estiver pronta sai na hora)
+        resposta = await tarefa_resposta2
+        enviado, resultado = await enviar_mensagem_async(agente2, agente1.numero, resposta)
         if not enviado:
-            print(f"{agente2.nome} falhou no envio.")
-            print(f"{agente2.nome}: enviou {count2} mensagens.")
+            print(f"{agente2.nome} falhou no envio. ({count2} msgs enviadas)")
+            print(f"{agente2.nome}: {resultado['message']}")
             break
-        historico.append({"role": "assistant", "content": resposta})
-        print(f"{agente2.nome}: {resposta} → {agente1.nome}")
+        historico.append({"role": "user", "content": resposta})
+        print(f"{agente2.nome}: {resposta} → {agente1.nome} {datetime.datetime.now().strftime('%H:%M:%S')}")
         count2 += 1
-        await delay_ms_async(test_mode)
 
-        # Próxima rodada
-        msg = await asyncio.to_thread(get_ia_response_gemini, resposta, historico, "Continue curto (<=120 caracteres)")
+        # já dispara a próxima fala do agente1 em paralelo
+        tarefa_resposta1 = asyncio.create_task(
+            asyncio.to_thread(get_ia_response, resposta, historico, "Continue a conversa de forma resumida (<=120 caracteres)")
+        )
+
+        min = random.randint(1, 10)
+        print(f"Proxima mensagem do {agente1.nome} em {min} minutos para {agente2.nome} {datetime.datetime.now().strftime('%H:%M:%S')}")
+        await delay_ms_async(min, test_mode)
+
+        # pega a próxima fala do agente 1
+        msg = await tarefa_resposta1
+
+    print(f"✅ {agente1.nome} enviou {count1} msgs | {agente2.nome} enviou {count2} msgs")
+
