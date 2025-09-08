@@ -43,9 +43,9 @@ async def main():
         async def conversar_com_limite(a1, a2):
             async with sem:
                 try:
-                    await conversar_async(a1, a2, 100, False, get_ia_response_ollama)
+                    await conversar_async(a1, a2, 2, False, get_ia_response_ollama)
                 except Exception:
-                    await conversar_async(a1, a2, 100, False, get_ia_response_gemini)
+                    await conversar_async(a1, a2, 2, False, get_ia_response_gemini)
         tarefa = asyncio.create_task(conversar_com_limite(par[0], par[1]))
         tarefas.append(tarefa)
         pares_em_execucao.add(par)
@@ -66,9 +66,9 @@ async def main():
                     async def conversar_com_limite(a1, a2):
                         async with sem:
                             try:
-                                await conversar_async(a1, a2, 5, False, get_ia_response_ollama)
+                                await conversar_async(a1, a2, 5, True, get_ia_response_ollama)
                             except Exception:
-                                await conversar_async(a1, a2, 5, False, get_ia_response_gemini)
+                                await conversar_async(a1, a2, 5, True, get_ia_response_gemini)
                     tarefa = asyncio.create_task(conversar_com_limite(par[0], par[1]))
                     tarefas.append(tarefa)
                     pares_em_execucao.add(par)
@@ -79,7 +79,7 @@ async def main():
                 break
 
         print("Encerrando monitoramento de teclas...")
-
+        return True
     # Executa tarefas + monitoramento de teclas
     await asyncio.gather(*tarefas, monitorar_teclas(), return_exceptions=True)
 

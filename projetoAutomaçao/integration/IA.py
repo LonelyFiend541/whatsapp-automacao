@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import random
 import asyncio
@@ -18,11 +19,37 @@ GENI_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GENI_API_KEY)
 executor = ThreadPoolExecutor(max_workers=20)
 
+# Criar historico
+# -------------------- HISTÓRICO --------------------
+HISTORICO_DIR = "historicos"
+os.makedirs(HISTORICO_DIR, exist_ok=True)
+
+def carregar_historico(ag1, ag2):
+    caminho = os.path.join(HISTORICO_DIR, f"{ag1.nome}_{ag2.nome}.json")
+    if os.path.exists(caminho):
+        try:
+            with open(caminho, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Erro ao ler histórico de {ag1.nome} com {ag2.nome}: {e}")
+            tratar_erro_ia(e)
+    return []
+
+def salvar_historico(ag1, ag2, historico: list):
+    caminho = os.path.join(HISTORICO_DIR, f"{ag1.nome}_{ag2.nome}.json")
+    try:
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(historico, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(tratar_erro_ia(e))
+        print(f"⚠️ Erro ao salvar histórico de {ag1.nome} com {ag2.nome}: {e}")
+
+
+
 # ==========================
 # Função delay assíncrono
 # ==========================
 async def delay_ms_async(min, test_mode=False):
-
     min *= 60
     await asyncio.sleep(0.1 if test_mode else min)
     return True
@@ -123,7 +150,7 @@ def get_ia_response_ollama(user_message, historico=None, prompt_extra=""):
 # Loop de conversa assíncrono
 # ========================
 async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False, get_ia_response=get_ia_response_ollama):
-    historico = []
+    historico = carregar_historico(agente1, agente2)
     print(f"🤖 Iniciando conversa entre {agente1.nome} e {agente2.nome}")
 
     # Agente 1 inicia
@@ -137,10 +164,10 @@ async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False, get_
             print(f"{agente1.nome} falhou no envio. ({count1} msgs enviadas)")
             print(f"{agente2.nome}: {resultado['message']}")
             break
-        historico.append({"role": "assistant", "content": msg})
+        historico.append({"role": agente1.nome, "content": msg, "number": agente1.numero , "time": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")})
         print(f"{agente1.nome}: {msg} → {agente2.nome} {datetime.datetime.now().strftime('%H:%M:%S')}")
         count1 += 1
-
+        salvar_historico(agente1, agente2, historico)
         # já dispara a resposta do agente 2 em paralelo
         tarefa_resposta2 = asyncio.create_task(
             asyncio.to_thread(get_ia_response, msg, historico, "Responda curto e natural (<=80 caracteres)")
@@ -157,10 +184,10 @@ async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False, get_
             print(f"{agente2.nome} falhou no envio. ({count2} msgs enviadas)")
             print(f"{agente2.nome}: {resultado['message']}")
             break
-        historico.append({"role": "user", "content": resposta})
+        historico.append({"role": agente2.nome, "content": resposta,  "number": agente2.numero, "time": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")})
         print(f"{agente2.nome}: {resposta} → {agente1.nome} {datetime.datetime.now().strftime('%H:%M:%S')}")
         count2 += 1
-
+        salvar_historico(agente1, agente2, historico)
         # já dispara a próxima fala do agente1 em paralelo
         tarefa_resposta1 = asyncio.create_task(
             asyncio.to_thread(get_ia_response, resposta, historico, "Continue a conversa de forma resumida (<=120 caracteres)")
@@ -174,4 +201,25 @@ async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False, get_
         msg = await tarefa_resposta1
 
     print(f"✅ {agente1.nome} enviou {count1} msgs | {agente2.nome} enviou {count2} msgs")
+    return True
+
+def tratar_erro_ia(mensagem):
+    mensagem = str(mensagem)
+    mensagens = [{
+        "role": "system",
+        "content": ( "Voce é um programador com 10 anos de experiencia em python"
+        )
+    }]
+    mensagens.append({"role": "user", "content": mensagem})
+
+    try:
+        response = ollama.chat(model="llama3.2:1b", messages=mensagens)
+        return (
+            response.get("message", {}).get("content", "").strip()
+            or "😅 Não consegui pensar em nada agora."
+        )
+    except Exception as e:
+        print(f"⚠️ Erro IA: {e}")
+        return tratar_erro_ia(e)
+
 

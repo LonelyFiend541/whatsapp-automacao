@@ -41,7 +41,7 @@ const logs = document.getElementById('logs');
 
 // Função para atualizar a lista de agentes
 function atualizarAgentes() {
-    fetch('/status')  // Rota Flask que retorna JSON de agentes: [{nome, conectado}, ...]
+    fetch('/teste')  // Rota Flask que retorna JSON de agentes: [{nome, conectado}, ...]
     .then(res => res.json())
     .then(data => {
         agentesLista.innerHTML = '';

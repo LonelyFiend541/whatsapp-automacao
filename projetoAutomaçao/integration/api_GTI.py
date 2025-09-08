@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from requests import session
 from websockets.asyncio.async_timeout import timeout
 
+from integration.IA import tratar_erro_ia
+
 load_dotenv()
 BASE_URL = "https://api.gtiapi.workers.dev"
 
@@ -290,6 +292,7 @@ def atualizar_status_parallel(agentes, max_workers=20):  # Aumente max_workers
                 future.result()
             except Exception as e:
                 print(f"[{ag.nome}] Erro inesperado ao atualizar: {e}")
+                tratar_erro_ia(e)
 
 
 def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=20):  # Aumente max_workers
