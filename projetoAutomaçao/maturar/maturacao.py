@@ -37,15 +37,17 @@ async def main():
     agentes = await carregar_agentes()
     agentes_conectados = await verificar_agentes(agentes)
     novos_pares = await criar_pares(agentes_conectados, pares_em_execucao)
+    #========================= Numero de turnos ==========================#
+    turno = 100
 
     # Criar tarefas iniciais
     for par in novos_pares:
         async def conversar_com_limite(a1, a2):
             async with sem:
                 try:
-                    await conversar_async(a1, a2, 2, False, get_ia_response_ollama)
+                    await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
                 except Exception:
-                    await conversar_async(a1, a2, 2, False, get_ia_response_gemini)
+                    await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
         tarefa = asyncio.create_task(conversar_com_limite(par[0], par[1]))
         tarefas.append(tarefa)
         pares_em_execucao.add(par)
@@ -59,16 +61,16 @@ async def main():
             await asyncio.sleep(0.2)
             if keyboard.is_pressed('r'):
                 print("verificando novos agentes")
-                atualizar_status_parallel(agentes)
+                await atualizar_status_parallel(agentes)
                 agentes_conectados = await verificar_agentes(agentes)
                 novos_pares = await criar_pares(agentes_conectados, pares_em_execucao)
                 for par in novos_pares:
                     async def conversar_com_limite(a1, a2):
                         async with sem:
                             try:
-                                await conversar_async(a1, a2, 5, True, get_ia_response_ollama)
+                                await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
                             except Exception:
-                                await conversar_async(a1, a2, 5, True, get_ia_response_gemini)
+                                await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
                     tarefa = asyncio.create_task(conversar_com_limite(par[0], par[1]))
                     tarefas.append(tarefa)
                     pares_em_execucao.add(par)

@@ -1,4 +1,6 @@
 import os
+import tkinter as tk
+from tkinter import simpledialog
 import socket
 import sys
 from appium import webdriver
@@ -7,6 +9,7 @@ from appium.webdriver.appium_service import AppiumService
 import contatos.contatos
 from contatos.contatos import *
 import until.utilitys
+from integration.IA import tratar_erro_ia
 from pages.whatsapp_page import *
 from until.waits import *
 from until.utilitys import *
@@ -28,6 +31,30 @@ os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tool
 os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "cmdline-tools", "latest", "bin")
 
 ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
+
+# -------------------- HISTÓRICO --------------------
+HISTORICO_DIR = "historicos"
+os.makedirs(HISTORICO_DIR, exist_ok=True)
+
+def carregar_historico(udid):
+    caminho = os.path.join(HISTORICO_DIR, f"{udid}.json")
+    if os.path.exists(caminho):
+        try:
+            with open(caminho, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Erro ao ler histórico de {udid}: {e}")
+            tratar_erro_ia(e)
+    return []
+
+def salvar_historico(udid, historico: list):
+    caminho = os.path.join(HISTORICO_DIR, f"{udid}.json")
+    try:
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(historico, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(tratar_erro_ia(e))
+        print(f"⚠️ Erro ao salvar histórico de {udid}: {e}")
 
 # 🔌 Busca os dispositivos conectados via ADB
 def pegar_udids():
@@ -53,11 +80,18 @@ def gerar_porta_por_udid(udid, base_porta=4723):
 # ▶️ Inicia o servidor Appium
 def iniciar_appium(porta):
     service = AppiumService()
+    node_path = r"C:\Program Files\nodejs\node.exe"
+    npm_path = r"C:\Program Files\nodejs\npm.cmd"
+    main_script = r"C:\Users\Alt 360\AppData\Roaming\npm\node_modules\appium\build\lib\main.js"
     service.start(args=[
         '--port', str(porta),
         '--base-path', '/',
         '--use-drivers', 'uiautomator2'
-    ])
+    ],
+        node=node_path,
+        npm=npm_path,
+        main_script=main_script
+    )
 
     for _ in range(10):
         if service.is_running:
@@ -68,7 +102,7 @@ def iniciar_appium(porta):
     raise RuntimeError(f"❌ Falha ao iniciar Appium na porta {porta}")
 
 # 🚀 Criação do driver com tentativas automáticas em caso de falha
-#@retry(max_tentativas=3, delay=1)
+@retry(max_tentativas=3, delay=1)
 def criar_drivers_whatsapp(udid, porta):
     options = UiAutomator2Options()
     options.platform_name = "Android"
@@ -109,6 +143,7 @@ def iniciar_ambiente_para_todos():
     """
     udids = pegar_udids()
     drivers_services = []
+    m2m = str(simpledialog.askstring("Entrada necessária", "Digite seu nome:"))
 
     with ThreadPoolExecutor(max_workers=len(udids)) as executor:
         futures = [
@@ -123,20 +158,17 @@ def iniciar_ambiente_para_todos():
     return drivers_services
 
 
-def rodar_automacao_whatsapp(driver):
+def rodar_automacao_whatsapp(driver, m2m,):
     try:
         print(f"▶️ Iniciando automação no dispositivo: {driver.capabilities['deviceName']}")
         whatsapp = WhatsAppPage(driver)
         udid = driver.capabilities["deviceName"]
+        historico = carregar_historico(udid)
         print(f"📱 Iniciando automação para: {udid}")
-        numero = whatsapp.pegarNumeroChip1(udid)
-        #resultados = executar_paralelo_arg(
-        #    (contatos.contatos.salvar_numero, (numero,), {}),
-        #    (numero_existe, (numero, udid), {})
-        #)
-        #if not resultados[1]:
-        #    criar_contato(numero, udid)
-        #    whatsapp.salvar(numero)
+        if not m2m:
+            numero = whatsapp.pegarNumeroChip1(udid)
+        else:
+            numero = m2m
         whatsapp.selecionar_linguagem()
         whatsapp.clicar_prosseguir()
         whatsapp.inserir_numero(numero)
@@ -144,15 +176,15 @@ def rodar_automacao_whatsapp(driver):
         time.sleep(1)
         boolean, status = executar_paralelo(
 
-            (whatsapp.verificarBanido, (numero, ), {}),
-            (whatsapp.verificarAnalise, (numero, ), {}),
-            (whatsapp.pedirAnalise, (numero, ), {}),
-            (whatsapp.verificarChip,(numero, ), {}),
+            (whatsapp.verificarBanido, (numero), {}),
+            (whatsapp.verificarAnalise, (numero), {}),
+            (whatsapp.pedirAnalise, (numero), {}),
+            (whatsapp.verificarChip,(numero), {}),
 
         )
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
-            print(f'O numero {numero} esta: {status}')
+            print(f'O numero {numero or m2m} esta: {status}')
             return
 
         if whatsapp.abrirAppMensagens():
@@ -162,7 +194,6 @@ def rodar_automacao_whatsapp(driver):
             whatsapp.inserir_codigo_sms(codigo)
             whatsapp.concluir_perfil()
         whatsapp.aceitarPermissao()
-            #table.salvar_numeros(numero, status)
         whatsapp.colocarNome()
         whatsapp.finalizarPerfil()
 
@@ -172,13 +203,13 @@ def rodar_automacao_whatsapp(driver):
         print(f"❌ Erro no dispositivo {driver.capabilities['deviceName']}: {e}")
 
 
-def whatsapp():
+def whatsapp(m2m,):
 #if __name__ == "__main__":
     drivers_services = iniciar_ambiente_para_todos()
     drivers = [ds[0] for ds in drivers_services if ds[0] is not None]
 
     with ThreadPoolExecutor(max_workers=len(drivers)) as executor:
-        futures = [executor.submit(rodar_automacao_whatsapp, driver) for driver in drivers]
+        futures = [executor.submit(rodar_automacao_whatsapp, driver, m2m or None,) for driver in drivers]
         for future in as_completed(futures):
             try:
                 future.result()
@@ -189,3 +220,5 @@ def whatsapp():
         if service and service.is_running:
             print("🛑 Parando Appium...")
             service.stop()
+
+

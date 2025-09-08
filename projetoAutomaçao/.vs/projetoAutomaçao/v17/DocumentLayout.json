@@ -1,22 +1,14 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\",
+  "WorkspaceRootPath": "C:\\Users\\Alt 360\\Desktop\\whatsapp-automacao\\projetoAutoma\u00E7ao\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\test\\test_registro_whatsapp.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:test\\test_registro_whatsapp.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Alt 360\\Desktop\\whatsapp-automacao\\projetoAutoma\u00E7ao\\requirements.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:requirements.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\pages\\whatsapp_page.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:pages\\whatsapp_page.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\until\\waits.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:until\\waits.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\drivers\\drivers_factory.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:drivers\\drivers_factory.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Alt 360\\Desktop\\whatsapp-automacao\\projetoAutoma\u00E7ao\\.env||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.env||{8B382828-6202-11D1-8870-0000F87579D2}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,59 +18,31 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "waits.py",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\until\\waits.py",
-              "RelativeDocumentMoniker": "until\\waits.py",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\until\\waits.py",
-              "RelativeToolTip": "until\\waits.py",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEXSURBVDhPrZMhboVAEIZ/GiQCiUBAgkByAZKHRnMKDKqGIAiqQXAEJEdAcAAkOEgQGASShANs9223r2xo8xJev\u002BRPdndmfmYmQTKHD4KLzPY7wA0u6V77Rg8PDMNgkmWZv3yhqioUReE3EcFgGAaUZYl5nhGGISuq6xpd12GaJhRFwTN/EAzWdYXneQiCAFEUIY5j9maaJpOmaXAch2dzjjvY953QDgjthGRZRpqmIb7vC3MfddrBtm1I0xSu6yJJEvR9j9vtxmL3veR5Dsuy2P3BsQM6u/AFugNC5ydt27KuqqoS4qz2aKDrupDwLdu2f42dRliWhZ9ExnH8MyYYXOF/DQghJz1DMJAk6aRnvDzCS78zAHwC4SWr3mOE00YAAAAASUVORK5CYII=",
-              "WhenOpened": "2025-07-23T11:33:17.448Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "test_registro_whatsapp.py",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\test\\test_registro_whatsapp.py",
-              "RelativeDocumentMoniker": "test\\test_registro_whatsapp.py",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\test\\test_registro_whatsapp.py",
-              "RelativeToolTip": "test\\test_registro_whatsapp.py",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
-              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEXSURBVDhPrZMhboVAEIZ/GiQCiUBAgkByAZKHRnMKDKqGIAiqQXAEJEdAcAAkOEgQGASShANs9223r2xo8xJev\u002BRPdndmfmYmQTKHD4KLzPY7wA0u6V77Rg8PDMNgkmWZv3yhqioUReE3EcFgGAaUZYl5nhGGISuq6xpd12GaJhRFwTN/EAzWdYXneQiCAFEUIY5j9maaJpOmaXAch2dzjjvY953QDgjthGRZRpqmIb7vC3MfddrBtm1I0xSu6yJJEvR9j9vtxmL3veR5Dsuy2P3BsQM6u/AFugNC5ydt27KuqqoS4qz2aKDrupDwLdu2f42dRliWhZ9ExnH8MyYYXOF/DQghJz1DMJAk6aRnvDzCS78zAHwC4SWr3mOE00YAAAAASUVORK5CYII=",
-              "WhenOpened": "2025-07-23T11:33:15.136Z",
-              "EditorCaption": ""
+              "Title": "requirements.txt",
+              "DocumentMoniker": "C:\\Users\\Alt 360\\Desktop\\whatsapp-automacao\\projetoAutoma\u00E7ao\\requirements.txt",
+              "RelativeDocumentMoniker": "requirements.txt",
+              "ToolTip": "C:\\Users\\Alt 360\\Desktop\\whatsapp-automacao\\projetoAutoma\u00E7ao\\requirements.txt",
+              "RelativeToolTip": "requirements.txt",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2025-09-08T14:09:34.789Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "whatsapp_page.py",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\pages\\whatsapp_page.py",
-              "RelativeDocumentMoniker": "pages\\whatsapp_page.py",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\pages\\whatsapp_page.py",
-              "RelativeToolTip": "pages\\whatsapp_page.py",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEXSURBVDhPrZMhboVAEIZ/GiQCiUBAgkByAZKHRnMKDKqGIAiqQXAEJEdAcAAkOEgQGASShANs9223r2xo8xJev\u002BRPdndmfmYmQTKHD4KLzPY7wA0u6V77Rg8PDMNgkmWZv3yhqioUReE3EcFgGAaUZYl5nhGGISuq6xpd12GaJhRFwTN/EAzWdYXneQiCAFEUIY5j9maaJpOmaXAch2dzjjvY953QDgjthGRZRpqmIb7vC3MfddrBtm1I0xSu6yJJEvR9j9vtxmL3veR5Dsuy2P3BsQM6u/AFugNC5ydt27KuqqoS4qz2aKDrupDwLdu2f42dRliWhZ9ExnH8MyYYXOF/DQghJz1DMJAk6aRnvDzCS78zAHwC4SWr3mOE00YAAAAASUVORK5CYII=",
-              "WhenOpened": "2025-07-23T11:33:11.323Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "drivers_factory.py",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\drivers\\drivers_factory.py",
-              "RelativeDocumentMoniker": "drivers\\drivers_factory.py",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Automa\u00E7\u00E3o\\projetoAutoma\u00E7ao\\drivers\\drivers_factory.py",
-              "RelativeToolTip": "drivers\\drivers_factory.py",
+              "Title": ".env",
+              "DocumentMoniker": "C:\\Users\\Alt 360\\Desktop\\whatsapp-automacao\\projetoAutoma\u00E7ao\\.env",
+              "RelativeDocumentMoniker": ".env",
+              "ToolTip": "C:\\Users\\Alt 360\\Desktop\\whatsapp-automacao\\projetoAutoma\u00E7ao\\.env",
+              "RelativeToolTip": ".env",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEXSURBVDhPrZMhboVAEIZ/GiQCiUBAgkByAZKHRnMKDKqGIAiqQXAEJEdAcAAkOEgQGASShANs9223r2xo8xJev\u002BRPdndmfmYmQTKHD4KLzPY7wA0u6V77Rg8PDMNgkmWZv3yhqioUReE3EcFgGAaUZYl5nhGGISuq6xpd12GaJhRFwTN/EAzWdYXneQiCAFEUIY5j9maaJpOmaXAch2dzjjvY953QDgjthGRZRpqmIb7vC3MfddrBtm1I0xSu6yJJEvR9j9vtxmL3veR5Dsuy2P3BsQM6u/AFugNC5ydt27KuqqoS4qz2aKDrupDwLdu2f42dRliWhZ9ExnH8MyYYXOF/DQghJz1DMJAk6aRnvDzCS78zAHwC4SWr3mOE00YAAAAASUVORK5CYII=",
-              "WhenOpened": "2025-07-23T11:31:41.039Z",
-              "EditorCaption": ""
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-09-08T14:07:38.315Z"
             }
           ]
         }

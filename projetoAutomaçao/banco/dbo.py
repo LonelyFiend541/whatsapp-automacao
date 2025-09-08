@@ -2,8 +2,11 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 import pyodbc
 import os
-from dotenv import load_dotenv
+import aioodbc
+from dotenv import *
 from pip._internal.utils.misc import tabulate
+
+
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -12,6 +15,8 @@ server = os.getenv('SERVER')
 database = os.getenv('DATABASE')
 username = os.getenv('USERNAMEDB')
 password = os.getenv('PASSWORD')
+
+
 DB =(f"DRIVER={{ODBC Driver 18 for SQL Server}};"
     f"SERVER={server};"
     f"DATABASE={database};"
@@ -206,7 +211,6 @@ def carregar_agentes_do_banco(conn_str, max_workers=10):
         return []
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-import aioodbc
 
 async def carregar_agentes_do_banco_async(max_workers=10):
     """
@@ -276,7 +280,6 @@ async def carregar_agentes_async_do_banco_async():
 
 query = "SELECT ID FROM [NEWWORK].[dbo].[ROTA] WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%' "
 #update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='GTI_2813', id_col="ID",id_val=2813)
-
 cursor.close()
 conn.close()
 

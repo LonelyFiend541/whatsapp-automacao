@@ -1,4 +1,6 @@
 import re
+from tkinter import simpledialog
+
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from appium.webdriver.common.appiumby import AppiumBy
@@ -24,6 +26,7 @@ class WhatsAppPage:
         """
 
         try:
+
             subprocess.run(f'adb -s {udid} shell am start -a android.intent.action.CALL -d tel:*846%23', shell=True)
             try:
                 escolher_chip = esperar_um_dos_elementos_visiveis(self.driver,(
@@ -63,8 +66,6 @@ class WhatsAppPage:
         except Exception as e:
             print(f"[pegar_numero_chip1] Exceção inesperada: {e}")
             raise
-
-
 
     def abrirWhatsapp(self):
         try:

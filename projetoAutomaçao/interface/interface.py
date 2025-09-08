@@ -1,9 +1,10 @@
 import sys
-import tkinter as tk
+from tkinter import simpledialog
+
 from appium.webdriver.common.appiumby import AppiumBy
 from threading import Thread
 from tkinter.scrolledtext import ScrolledText
-
+import tkinter as tk
 from drivers.drivers_whatsapp import whatsapp, pegar_udids
 from drivers.drivers_whatsapp_bussines import bussines
 from until.utilitys import *
@@ -53,9 +54,10 @@ def pegar_udids_interface():
 
 # === Funções de ação dos botões ===
 def executar():
-
+    m2m = str(simpledialog.askstring("Entrada necessária", "Digite seu nome:"))
     label.config(text="WHATSAPP")
-    Thread(target=whatsapp).start()  # Corrigido: não chamar diretamente
+    Thread(target=whatsapp, args=(m2m or None,)).start()
+
 
 def executartd():
 

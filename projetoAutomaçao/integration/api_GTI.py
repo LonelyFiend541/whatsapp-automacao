@@ -1,3 +1,4 @@
+import asyncio
 import os
 import base64
 import random
@@ -282,17 +283,17 @@ def apagar_webhook(agente, url, id):
         print(f"⚠️ Erro ao apagar Webhook: {e}")
         return None
 
-def atualizar_status_parallel(agentes, max_workers=20):  # Aumente max_workers
-    """Atualiza status em paralelo"""
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_agente = {executor.submit(ag.atualizar_status): ag for ag in agentes}
-        for future in as_completed(future_to_agente):
-            ag = future_to_agente[future]
-            try:
-                future.result()
-            except Exception as e:
-                print(f"[{ag.nome}] Erro inesperado ao atualizar: {e}")
-                tratar_erro_ia(e)
+async def atualizar_status_parallel(agentes):
+    """Atualiza status de agentes em paralelo usando asyncio"""
+    tasks = []
+    for ag in agentes:
+        tasks.append(ag.atualizar_status())  # coroutine
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for ag, result in zip(agentes, results):
+        if isinstance(result, Exception):
+            print(f"[{ag.nome}] Erro inesperado ao atualizar: {result}")
 
 
 def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=20):  # Aumente max_workers
