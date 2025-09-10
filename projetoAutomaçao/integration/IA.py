@@ -223,3 +223,23 @@ def tratar_erro_ia(mensagem):
         return tratar_erro_ia(e)
 
 
+import subprocess
+
+def listar_udids():
+    result = subprocess.run(["adb", "devices"], capture_output=True, text=True)
+    linhas = result.stdout.strip().split("\n")[1:]
+    udids = [linha.split("\t")[0] for linha in linhas if "device" in linha]
+    return udids
+
+def sinalizar_dispositivo(udid):
+    titulo = f"Atenção! {str(udid)}"
+    mensagem = f"{str(udid)}"
+    comando = [
+        "adb", "-s", udid, "shell", "cmd", "notification", "post",
+        "-S", "bigtext", "-t", titulo,  mensagem
+    ]
+    subprocess.run(comando)
+
+udis = listar_udids()
+for udid in udis:
+    sinalizar_dispositivo(udid)

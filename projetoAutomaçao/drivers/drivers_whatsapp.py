@@ -1,12 +1,9 @@
 import os
-import tkinter as tk
-from tkinter import simpledialog
 import socket
 import sys
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-import contatos.contatos
 from contatos.contatos import *
 import until.utilitys
 from integration.IA import tratar_erro_ia
@@ -14,27 +11,34 @@ from pages.whatsapp_page import *
 from until.waits import *
 from until.utilitys import *
 import subprocess
-#from integration.db_integration import salvar_numero
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 # Configura Android SDK para o Appium achar o adb
 # Configura variáveis do Android SDK
-ANDROID_SDK_PATH = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),  # pasta do script atual
-        "..", "patch"
-    )
-)
-
+ANDROID_SDK_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "patch"))
 os.environ["ANDROID_HOME"] = ANDROID_SDK_PATH
 os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tools")
 os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "cmdline-tools", "latest", "bin")
-
 ADB_PATH = os.path.join(ANDROID_SDK_PATH, "platform-tools", "adb.exe")
 
 # -------------------- HISTÓRICO --------------------
 HISTORICO_DIR = "historicos"
 os.makedirs(HISTORICO_DIR, exist_ok=True)
+
+NUMERO_DIR = "Numeros"
+os.makedirs(HISTORICO_DIR, exist_ok=True)
+
+def carregar_recadastro():
+    caminho = os.path.join(NUMERO_DIR, f"dados_recadastro.json")
+    if os.path.exists(caminho):
+        try:
+            with open(caminho, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Erro ao ler histórico: {e}")
+            tratar_erro_ia(e)
+    return []
 
 def carregar_historico(udid):
     caminho = os.path.join(HISTORICO_DIR, f"{udid}.json")
@@ -143,7 +147,6 @@ def iniciar_ambiente_para_todos():
     """
     udids = pegar_udids()
     drivers_services = []
-    m2m = str(simpledialog.askstring("Entrada necessária", "Digite seu nome:"))
 
     with ThreadPoolExecutor(max_workers=len(udids)) as executor:
         futures = [
@@ -158,17 +161,24 @@ def iniciar_ambiente_para_todos():
     return drivers_services
 
 
-def rodar_automacao_whatsapp(driver, m2m,):
+def rodar_automacao_whatsapp(driver):
     try:
         print(f"▶️ Iniciando automação no dispositivo: {driver.capabilities['deviceName']}")
         whatsapp = WhatsAppPage(driver)
         udid = driver.capabilities["deviceName"]
-        historico = carregar_historico(udid)
         print(f"📱 Iniciando automação para: {udid}")
-        if not m2m:
-            numero = whatsapp.pegarNumeroChip1(udid)
+        dados = carregar_recadastro()
+        for dado in dados:
+            if dado["UDID"] == udid:
+                chip1 = dado.get("Chip 1")
+        if not chip1:
+            try:
+                numero = whatsapp.pegarNumeroChip1(udid)
+            except Exception as e:
+                tratar_erro_ia(e)
+                return None
         else:
-            numero = m2m
+            numero = chip1
         whatsapp.selecionar_linguagem()
         whatsapp.clicar_prosseguir()
         whatsapp.inserir_numero(numero)
@@ -184,7 +194,7 @@ def rodar_automacao_whatsapp(driver, m2m,):
         )
         if boolean:
             print(f"⛔ Chip com problema detectado no dispositivo {udid}. Encerrando automação.")
-            print(f'O numero {numero or m2m} esta: {status}')
+            print(f'O numero {numero} esta: {status}')
             return
 
         if whatsapp.abrirAppMensagens():
@@ -203,13 +213,13 @@ def rodar_automacao_whatsapp(driver, m2m,):
         print(f"❌ Erro no dispositivo {driver.capabilities['deviceName']}: {e}")
 
 
-def whatsapp(m2m,):
+def whatsapp():
 #if __name__ == "__main__":
     drivers_services = iniciar_ambiente_para_todos()
     drivers = [ds[0] for ds in drivers_services if ds[0] is not None]
 
     with ThreadPoolExecutor(max_workers=len(drivers)) as executor:
-        futures = [executor.submit(rodar_automacao_whatsapp, driver, m2m or None,) for driver in drivers]
+        futures = [executor.submit(rodar_automacao_whatsapp, driver) for driver in drivers]
         for future in as_completed(futures):
             try:
                 future.result()
@@ -220,5 +230,3 @@ def whatsapp(m2m,):
         if service and service.is_running:
             print("🛑 Parando Appium...")
             service.stop()
-
-

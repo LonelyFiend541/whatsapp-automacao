@@ -277,9 +277,11 @@ async def carregar_agentes_async_do_banco_async():
 # Exemplo de uso
 # asyncio.run(carregar_agentes_do_banco_async())
 
-
+agentes = carregar_agentes_do_banco(DB)
+for ag in agentes:
+    ag.dados()
 query = "SELECT ID FROM [NEWWORK].[dbo].[ROTA] WHERE SERVICO = 'MATURACAO' AND TELEFONE LIKE 'GTI%' "
-#update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='GTI_2813', id_col="ID",id_val=2813)
+update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='GTI_2813', id_col="ID",id_val=2813)
 cursor.close()
 conn.close()
 

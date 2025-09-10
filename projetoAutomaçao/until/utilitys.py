@@ -61,7 +61,6 @@ def encerrar_appium():
 # ===========================
 # Encerrar uiautomator2
 # ===========================
-
 def liberar_portas(range_inicio=8200, range_fim=8299):
     liberadas = []
     for conn in psutil.net_connections(kind="inet"):
@@ -83,21 +82,16 @@ def liberar_portas(range_inicio=8200, range_fim=8299):
 # Função genérica ADB
 # ===========================
 def otimizar_app(udids):
-    """
-    Otimiza o desempenho do dispositivo Android desativando animações e fechando apps em segundo plano.
-
-    :param udids: Lista de UDIDs dos dispositivos conectados
-    """
     for udid in udids:
         try:
             comandos = [
-                f"{ADB_PATH} -s {udid} shell settings put global animator_duration_scale 0",
-                f"{ADB_PATH} -s {udid} shell settings put global transition_animation_scale 0",
-                f"{ADB_PATH} -s {udid} shell settings put global window_animation_scale 0",
-                f"{ADB_PATH} -s {udid} shell am kill-all"
+                [ADB_PATH, "-s", udid, "shell", "settings", "put", "global", "animator_duration_scale", "0"],
+                [ADB_PATH, "-s", udid, "shell", "settings", "put", "global", "transition_animation_scale", "0"],
+                [ADB_PATH, "-s", udid, "shell", "settings", "put", "global", "window_animation_scale", "0"],
+                [ADB_PATH, "-s", udid, "shell", "am", "kill-all"]
             ]
             for cmd in comandos:
-                subprocess.run(cmd.split(), check=True)
+                subprocess.run(cmd, check=True)
             print(f"Aparelho {udid} otimizado.")
         except subprocess.CalledProcessError as e:
             print(f"[ERRO] Falha ao otimizar {udid}: {e}")
@@ -105,8 +99,8 @@ def otimizar_app(udids):
 def limpar_whatsapp(udids):
     for udid in udids:
         try:
-            comando = f"{ADB_PATH} -s {udid} shell pm clear com.whatsapp"
-            subprocess.run(comando.split(), check=True)
+            comando = [ADB_PATH, "-s", udid, "shell", "pm", "clear", "com.whatsapp"]
+            subprocess.run(comando, check=True)
             print(f"Whatsapp do aparelho {udid} Limpo.")
         except subprocess.CalledProcessError as e:
             print(f"[ERRO] Falha ao limpar {udid}: {e}")
@@ -114,13 +108,11 @@ def limpar_whatsapp(udids):
 def limpar_whatsapp_busines(udids):
     for udid in udids:
         try:
-            comando = f"{ADB_PATH} -s {udid} shell pm clear com.whatsapp.w4b"
-            subprocess.run(comando.split(), check=True)
+            comando = [ADB_PATH, "-s", udid, "shell", "pm", "clear", "com.whatsapp.w4b"]
+            subprocess.run(comando, check=True)
             print(f"Whatsapp Business do aparelho {udid} Limpo.")
         except subprocess.CalledProcessError as e:
             print(f"[ERRO] Falha ao limpar {udid}: {e}")
-
-
 
 # ===========================
 # Executar em paralelo
@@ -134,7 +126,6 @@ def executar_em_paralelo(func, udids, max_workers=5):
             resultados_finais[udid] = resultados
             print(f"📱 {udid} → {resultados}")
     return resultados_finais
-
 
 # ===========================
 # Função utilitária para status de elementos

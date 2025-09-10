@@ -1,10 +1,10 @@
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-
 from contatos import contatos
 from contatos.contatos import *
 import until.utilitys
+from integration.IA import tratar_erro_ia
 from pages.wa_bussines import *
 from until.utilitys import *
 import subprocess
@@ -18,6 +18,20 @@ ANDROID_SDK_PATH = os.path.abspath(
         "..", "patch"
     )
 )
+
+NUMERO_DIR = "Numeros"
+os.makedirs(NUMERO_DIR, exist_ok=True)
+
+def carregar_recadastro():
+    caminho = os.path.join(NUMERO_DIR, f"dados_recadastro.json")
+    if os.path.exists(caminho):
+        try:
+            with open(caminho, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Erro ao ler histórico: {e}")
+            tratar_erro_ia(e)
+    return []
 
 os.environ["ANDROID_HOME"] = ANDROID_SDK_PATH
 os.environ["PATH"] += os.pathsep + os.path.join(ANDROID_SDK_PATH, "platform-tools")
@@ -105,14 +119,19 @@ def rodar_automacao_whatsapp_bussines(driver):
         whatsappbussines = WaBussinesPage(driver)
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
-        numero = whatsappbussines.pegar_numero_chip2(udid)
-        #resultados = executar_paralelo_arg(
-            #(contatos.salvar_numero, (numero,), {}),
-            #(numero_existe, (numero, udid), {}))
-        #if not resultados[1]:
-            #criar_contato(numero, udid)
-            #whatsappbussines.salvar(numero)
-
+        dados = carregar_recadastro()
+        for dado in dados:
+            if dado["UDID"] == udid:
+                chip2 = dado.get("Chip 2")
+                print(chip2)
+        if not chip2:
+            try:
+                numero = whatsappbussines.pegar_numero_chip2(udid)
+            except Exception as e:
+                tratar_erro_ia(e)
+                return None
+        else:
+            numero = chip2
         whatsappbussines.aceitar_termos()
         whatsappbussines.usar_outro_chip()
         whatsappbussines.registrar_numero(numero)
