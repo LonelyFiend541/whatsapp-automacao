@@ -84,19 +84,13 @@ def gerar_porta_por_udid(udid, base_porta=4723):
 # ▶️ Inicia o servidor Appium
 def iniciar_appium(porta):
     service = AppiumService()
-    node_path = r"C:\Program Files\nodejs\node.exe"
-    npm_path = r"C:\Program Files\nodejs\npm.cmd"
-    main_script = r"C:\Users\Alt 360\AppData\Roaming\npm\node_modules\appium\build\lib\main.js"
-    service.start(args=[
-        '--port', str(porta),
-        '--base-path', '/',
-        '--use-drivers', 'uiautomator2'
-    ],
-        node=node_path,
-        npm=npm_path,
-        main_script=main_script
-    )
+    import shutil
 
+    appium_path = shutil.which("appium")
+    if not appium_path:
+        raise RuntimeError("❌ Appium não encontrado no PATH. Instale com: npm install -g appium")
+
+    service.start(args=['--port', str(porta)])
     for _ in range(10):
         if service.is_running:
             print(f"✅ Appium iniciado na porta {porta}")

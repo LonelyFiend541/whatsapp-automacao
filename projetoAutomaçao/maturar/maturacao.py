@@ -45,7 +45,7 @@ async def main():
         async def conversar_com_limite(a1, a2):
             async with sem:
                 try:
-                    await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
+                    await conversar_async(a1, a2, turno, False, get_ia_response_ollama)
                 except Exception:
                     await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
         tarefa = asyncio.create_task(conversar_com_limite(par[0], par[1]))
@@ -68,7 +68,7 @@ async def main():
                     async def conversar_com_limite(a1, a2):
                         async with sem:
                             try:
-                                await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
+                                await conversar_async(a1, a2, turno, False, get_ia_response_ollama)
                             except Exception:
                                 await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
                     tarefa = asyncio.create_task(conversar_com_limite(par[0], par[1]))
@@ -77,7 +77,8 @@ async def main():
             if keyboard.is_pressed("q"):
                 print("\n⏹ Parada emergencial detectada! Cancelando todas as conversas...")
                 for t in tarefas:
-                    t.cancel()
+                    #t.cancel()
+                    print("deveria cancelar mas esta desativado")
                 break
 
         print("Encerrando monitoramento de teclas...")

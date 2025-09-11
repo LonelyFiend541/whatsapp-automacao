@@ -1,3 +1,6 @@
+aioodbc
+keyboard
+click
 protobuf
 pyodbc
 Appium-Python-Client==5.1.1

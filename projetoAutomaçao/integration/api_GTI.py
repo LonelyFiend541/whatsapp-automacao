@@ -78,25 +78,35 @@ class AgenteGTI:
             print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
             return False
 
+
     def gerar_qr(self):
+        import tkinter.messagebox as messagebox
+
         """Solicita geração de QR code"""
         try:
             resp = self.session.post(f"{BASE_URL}/instance/connect", timeout=self.timeout)
 
             if resp.status_code == 409:
-                print(f"[{self.nome}] Já conectado, atualizando status.")
+                # Alerta visual usando messagebox
+                messagebox.showinfo(
+                    title="Agente já conectado",
+                    message=f"[{self.nome}] ⚠️ Já conectado! QR Code não é necessário."
+                )
                 self.atualizar_status()
+                return  # Sai da função para não gerar QR desnecessário
             else:
                 resp.raise_for_status()
                 data = resp.json()
                 qr_base64 = data.get("instance", {}).get("qrcode", "")
                 if qr_base64.startswith("data:image/png;base64,"):
                     qr_base64 = qr_base64.split(",")[1]
-                self.qrcode = qr_base64
+                self.qrcode = qr_base64 if qr_base64 else None
 
             if self.qrcode:
                 print(f"\n[{self.nome}] QR Code disponível")
-                self.abrir_qr(qr_base64)
+                self.abrir_qr(self.qrcode)
+            else:
+                print(f"[{self.nome}] QR Code não disponível no momento.")
 
         except requests.RequestException as e:
             print(f"[{self.nome}] Erro ao gerar QR code: {e}")
@@ -106,28 +116,54 @@ class AgenteGTI:
         import cv2
         import numpy as np
 
-        # Base64 do QR Code
-        # Decodifica Base64 em bytes
-        image_data = base64.b64decode(qr_base64)
+        if not qr_base64:
+            print(f"[{self.nome}] Nenhum QR Code para abrir.")
+            return
+
+        # Corrige padding se necessário
+        missing_padding = len(qr_base64) % 4
+        if missing_padding:
+            qr_base64 += "=" * (4 - missing_padding)
+
+        try:
+            image_data = base64.b64decode(qr_base64)
+        except Exception as e:
+            print(f"[{self.nome}] QR Code inválido: {e}")
+            return
+
         image_np = np.frombuffer(image_data, np.uint8)
         img = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+
+        if img is None:
+            print(f"[{self.nome}] Imagem do QR Code inválida ou corrompida.")
+            return
+
         while True:
-            cv2.imshow(f"QR Code {self.nome}", img)
+            cv2.imshow(f"{self.nome}", img)
             print("Pressione 'r' para recarregar ou qualquer outra tecla para fechar...")
             key = cv2.waitKey(0)
 
-            if key == ord('r') or key == ord('R'):
+            if key in (ord('r'), ord('R')):
                 cv2.destroyAllWindows()
                 print(f"[{self.nome}] Recarregando QR...")
-                self.gerar_qr()  # chama de novo para pegar QR atualizado
-                return None
+                self.gerar_qr()
+                return
             else:
                 cv2.destroyAllWindows()
-                return True
+                return
 
     def dados(self):
         """Mostra dados básicos"""
         print(f"{self.nome} | Número: {self.numero} | Conectado: {self.conectado}")
+
+    def desconectar(self):
+        try:
+            resp = self.session.post(f"{BASE_URL}/instance/disconnect", timeout=self.timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
+            return False
 
 
 import httpx

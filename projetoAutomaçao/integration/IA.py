@@ -4,6 +4,8 @@ import os
 import random
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+
+import google.generativeai as genai
 import keyboard
 from click import prompt
 from dotenv import load_dotenv
