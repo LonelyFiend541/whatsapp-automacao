@@ -4,8 +4,6 @@ import sys
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import AppiumService
-from contatos.contatos import *
-import until.utilitys
 from integration.IA import tratar_erro_ia
 from pages.whatsapp_page import *
 from until.waits import *
@@ -224,3 +222,6 @@ def whatsapp():
         if service and service.is_running:
             print("🛑 Parando Appium...")
             service.stop()
+
+
+

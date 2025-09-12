@@ -100,6 +100,7 @@ def get_ia_response_gemini(user_message, historico=None, prompt_extra=""):
         return response.text.strip()
     except Exception as e:
         print(f"⚠️ Erro IA Gemini: {e}")
+        tratar_erro_ia(e)
         return "⚠️ Deu ruim aqui 😅"
 
 def get_ia_response_ollama(user_message, historico=None, prompt_extra=""):
