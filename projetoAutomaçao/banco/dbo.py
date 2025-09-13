@@ -1,13 +1,13 @@
 import asyncio
 import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from operator import contains
 import aioodbc
 import pyodbc
 import os
 from dotenv import load_dotenv
 from pip._internal.utils.misc import tabulate
-
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -16,12 +16,12 @@ server = os.getenv('SERVER')
 database = os.getenv('DATABASE')
 username = os.getenv('USERNAMEDB')
 password = os.getenv('PASSWORD')
-DB =(f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-    f"SERVER={server};"
-    f"DATABASE={database};"
-    f"UID={username};"
-    f"PWD={password};"
-    f"TrustServerCertificate=yes;")
+DB = (f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+      f"SERVER={server};"
+      f"DATABASE={database};"
+      f"UID={username};"
+      f"PWD={password};"
+      f"TrustServerCertificate=yes;")
 
 # Conexão com o banco
 conn = pyodbc.connect(DB)
@@ -70,6 +70,7 @@ def listar_tabelas_colunas():
 
     return resultado
 
+
 def consulta_visual(query):
     """
     Executa a consulta SQL, identifica a tabela usada e mostra
@@ -85,7 +86,7 @@ def consulta_visual(query):
     # Tentar extrair a tabela da query
     match = re.search(r'FROM\s+([\[\]\w\.]+)', query, re.IGNORECASE)
     if match:
-        tabela = match.group(1).split('.')[-1].replace('[','').replace(']','')
+        tabela = match.group(1).split('.')[-1].replace('[', '').replace(']', '')
     else:
         print("❌ Não foi possível identificar a tabela do SQL.")
         tabela = None
@@ -101,7 +102,7 @@ def consulta_visual(query):
         colunas = cursor.fetchall()
         print(f"\n📋 Estrutura da tabela '{tabela}':")
         for name, dtype, is_nullable, char_len in colunas:
-            info = f"{name} ({dtype}, {'NULL' if is_nullable=='YES' else 'NOT NULL'})"
+            info = f"{name} ({dtype}, {'NULL' if is_nullable == 'YES' else 'NOT NULL'})"
             if char_len:
                 info += f", max_length={char_len}"
             print(f"  - {info}")
@@ -114,6 +115,7 @@ def consulta_visual(query):
             print(linha)
     else:
         print("Nenhum registro encontrado.")
+
 
 def update_e_confirmar(conn, tabela, coluna, valor, id_col, id_val):
     """
@@ -158,6 +160,7 @@ def update_e_confirmar(conn, tabela, coluna, valor, id_col, id_val):
 
     cursor.close()
 
+
 def consulta(query):
     """
     Executa qualquer query SELECT e imprime todos os resultados.
@@ -173,6 +176,7 @@ def consulta(query):
             print("Nenhum registro encontrado.")
     except Exception as e:
         print(f"Erro ao executar consulta: {e}")
+
 
 def carregar_agentes_do_banco(conn_str, max_workers=10):
     """
@@ -209,6 +213,7 @@ def carregar_agentes_do_banco(conn_str, max_workers=10):
         print(f"❌ Erro ao carregar agentes: {e}")
         return []
 
+
 def carregar_novos_agentes(conn_str, max_workers=10):
     """
     Carrega agentes do banco e cria objetos AgenteGTI em paralelo.
@@ -244,6 +249,7 @@ def carregar_novos_agentes(conn_str, max_workers=10):
         print(f"❌ Erro ao carregar agentes: {e}")
         return []
 
+
 async def carregar_agentes_do_banco_async(max_workers=10):
     """
     Carrega agentes do banco de forma assíncrona e cria objetos AgenteGTI em paralelo.
@@ -261,9 +267,11 @@ async def carregar_agentes_do_banco_async(max_workers=10):
             async with conn.cursor() as cursor:
                 await cursor.execute(query)
                 registros = await cursor.fetchall()
+
         def criar_agente(telefone_senha):
             telefone, senha = telefone_senha
             return AgenteGTI(nome=telefone, token=senha)
+
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             agentes = await asyncio.gather(
@@ -273,6 +281,7 @@ async def carregar_agentes_do_banco_async(max_workers=10):
     except Exception as e:
         print(f"❌ Erro ao carregar agentes: {e}")
         return []
+
 
 async def carregar_agentes_async_do_banco_async():
     """
@@ -305,17 +314,27 @@ async def carregar_agentes_async_do_banco_async():
         print(f"❌ Erro ao carregar agentes: {e}")
         return []
 
+
 async def carregar_agentes_inter(tipo):
     """
-    Carrega agentes do banco de forma assíncrona e cria objetos AgenteGTI em paralelo.
+    Carrega agentes do banco de forma assíncrona.
+    Se `since` for fornecido, busca apenas agentes novos ou atualizados desde essa data.
     """
-    from integration.api_GTI import AgenteGTIAsync
+    from integration.api_GTI import AgenteGTI
+
     query = f"""
-        SELECT TELEFONE, SENHA
-        FROM [NEWWORK].[dbo].[ROTA]
-        WHERE SERVICO='MATURACAO' 
-          AND (TIPO_ROTA LIKE '{tipo}') AND (TELEFONE LIKE 'GTI%') OR (TELEFONE LIKE 'W%')
-    """
+SELECT TELEFONE, SENHA
+FROM [NEWWORK].[dbo].[ROTA]
+WHERE SERVICO = 'MATURACAO'
+  AND TIPO_ROTA LIKE '{tipo}'
+  AND (
+        PATINDEX('GTI%', TELEFONE) = 1
+     OR PATINDEX('W%', TELEFONE) = 1
+     OR PATINDEX('T%', TELEFONE) = 1
+     OR PATINDEX('C%', TELEFONE) = 1
+  )
+"""
+    # filtro incremental
     try:
         dsn = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv("SERVER")};DATABASE={os.getenv("DATABASE")};UID={os.getenv("USERNAMEDB")};PWD={os.getenv("PASSWORD")};TrustServerCertificate=yes;'
         async with aioodbc.connect(dsn=dsn, autocommit=True) as conn:
@@ -325,28 +344,26 @@ async def carregar_agentes_inter(tipo):
 
         async def criar_agente(telefone_senha):
             telefone, senha = telefone_senha
-            agente = AgenteGTIAsync(nome=telefone, token=senha)
-            return await agente.async_init()  # garante inicialização
+            agente = AgenteGTI(nome=telefone, token=senha)
+            await agente.atualizar_status_async()  # inicializa status async
+            return agente
 
         # cria todos em paralelo
         agentes = await asyncio.gather(*(criar_agente(r) for r in registros))
         return agentes
 
     except Exception as e:
-        print(f"❌ Erro ao carregar agentes: {e}")
+        print(f"❌ Erro ao carregar agentes: {repr(e)}")
         return []
-
-
-
 
 # Exemplo de uso
 # asyncio.run(carregar_agentes_do_banco_async())
 
 
-query = "SELECT ID, TELEFONE, TIPO_ROTA FROM [NEWWORK].[dbo].[ROTA] WHERE SERVICO = 'MATURACAO'" #and TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'GTI%' "
-#update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='Chip_novo_25', id_col="ID",id_val=2733)
-#linhas = consulta(query)
-#i = 1
+query = "SELECT ID, TELEFONE, TIPO_ROTA FROM [NEWWORK].[dbo].[ROTA] WHERE SERVICO = 'MATURACAO'"  # and TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'GTI%' "
+# update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='Chip_novo_25', id_col="ID",id_val=2733)
+# linhas = consulta(query)
+# i = 1
 '''for linha in linhas:
     if i <= 20:  # ou >= dependendo da lógica
         update_e_confirmar(
@@ -359,8 +376,7 @@ query = "SELECT ID, TELEFONE, TIPO_ROTA FROM [NEWWORK].[dbo].[ROTA] WHERE SERVIC
         )
     i += 1'''
 
-consulta(query)
+# consulta(query)
 
 cursor.close()
 conn.close()
-
