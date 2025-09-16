@@ -287,12 +287,12 @@ async def carregar_agentes_async_do_banco_async():
     """
     Carrega agentes do banco de forma assíncrona e cria objetos AgenteGTI em paralelo.
     """
-    from integration.api_GTI import AgenteGTIAsync
+    from integration.api_GTI import AgenteGTI
     query = """
         SELECT TELEFONE, SENHA
         FROM [NEWWORK].[dbo].[ROTA]
         WHERE SERVICO='MATURACAO' 
-          AND (TIPO_ROTA LIKE 'MATURACAO') AND (TELEFONE LIKE 'Teste%') OR (TELEFONE LIKE 'Chip%')
+          AND (TIPO_ROTA LIKE 'MATURACAO') AND (TELEFONE LIKE 'Teste%') 
     """
     try:
         dsn = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv("SERVER")};DATABASE={os.getenv("DATABASE")};UID={os.getenv("USERNAMEDB")};PWD={os.getenv("PASSWORD")};TrustServerCertificate=yes;'
@@ -303,8 +303,9 @@ async def carregar_agentes_async_do_banco_async():
 
         async def criar_agente(telefone_senha):
             telefone, senha = telefone_senha
-            agente = AgenteGTIAsync(nome=telefone, token=senha)
-            return await agente.async_init()  # garante inicialização
+            agente = AgenteGTI(nome=telefone, token=senha)
+            await agente.atualizar_status_async()
+            return agente
 
         # cria todos em paralelo
         agentes = await asyncio.gather(*(criar_agente(r) for r in registros))
@@ -328,12 +329,10 @@ FROM [NEWWORK].[dbo].[ROTA]
 WHERE SERVICO = 'MATURACAO'
   AND TIPO_ROTA LIKE '{tipo}'
   AND (
-        PATINDEX('GTI%', TELEFONE) = 1
-     OR PATINDEX('W%', TELEFONE) = 1
-     OR PATINDEX('T%', TELEFONE) = 1
-     OR PATINDEX('C%', TELEFONE) = 1
+        PATINDEX('T%', TELEFONE) = 1 
   )
 """
+    # OR PATINDEX('W%', TELEFONE) = 1  OR PATINDEX('T%', TELEFONE) = 1  OR PATINDEX('C%', TELEFONE) = 1
     # filtro incremental
     try:
         dsn = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv("SERVER")};DATABASE={os.getenv("DATABASE")};UID={os.getenv("USERNAMEDB")};PWD={os.getenv("PASSWORD")};TrustServerCertificate=yes;'

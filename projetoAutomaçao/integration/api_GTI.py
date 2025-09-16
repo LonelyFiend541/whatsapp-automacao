@@ -97,10 +97,10 @@ class AgenteGTI:
         try:
             resp = await self.client.post(f"{BASE_URL}/send/text", json=payload)
             resp.raise_for_status()
-            return resp.json()
+            return True, resp.json()
         except httpx.RequestError as e:
             print(f"[{self.nome}] Erro async ao enviar mensagem: {e}")
-            return None
+            return False, None
 
     # ======================== QR CODE ========================
     def gerar_qr(self):

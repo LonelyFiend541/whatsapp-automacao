@@ -1,368 +1,289 @@
-import threading
 import asyncio
-import tkinter as tk
-from tkinter import ttk, scrolledtext
+import threading
 import re
-import itertools
-import aioodbc
-from banco.dbo import carregar_novos_agentes, DB, carregar_agentes_do_banco, carregar_agentes_inter
-from integration.IA import tratar_erro_ia
+import tkinter as tk
+from tkinter import ttk
+from collections import defaultdict
+
+# === Ajuste para seus módulos reais ===
+from banco.dbo import (
+    carregar_novos_agentes,
+    carregar_agentes_inter,
+    DB,
+)
 from integration.api_GTI import atualizar_status_parallel
+from maturar.maturacao import main, criar_pares
 
-# ================= Funções auxiliares =================
-def extrair_numero(nome):
-    match = re.search(r'\d+', nome)
-    return int(match.group()) if match else 0
 
-def cor_status(conectado):
+# =====================================================
+# Funções auxiliares
+# =====================================================
+def extrair_numero(nome: str) -> int:
+    m = re.search(r'\d+', nome)
+    return int(m.group()) if m else 0
+
+
+def cor_status(conectado: bool) -> str:
     return "#27ae60" if conectado else "#c0392b"
 
-def log_async(widget, msg, tipo="info"):
-    widget.after(0, lambda: log(widget, msg, tipo))
 
-def log(text_widget, msg, tipo="info"):
-    cores = {"info": "white", "sucesso": "#27ae60", "erro": "#e74c3c", "alerta": "#f39c12"}
-    text_widget.insert("end", f"{msg}\n", tipo)
-    text_widget.tag_config(tipo, foreground=cores.get(tipo, "white"))
-    text_widget.see("end")
+# =====================================================
+# Loop global do asyncio em thread separada
+# =====================================================
+loop = asyncio.new_event_loop()
 
-# ================= Placeholders funções externas =================
-async def carregar_agentes_banco_inter(tipo):
-    return await carregar_agentes_inter(tipo)
 
-async def conversar_async(a1, a2, quantidade, flag, get_ia_response):
-    # Função simulada de conversação
-    await asyncio.sleep(1)
-    return f"{a1.nome} conversou com {a2.nome}"
+def _start_loop():
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
 
-async def get_ia_response_ollama(msg):
-    return f"Resposta Ollama para: {msg}"
 
-async def get_ia_response_gemini(msg):
-    return f"Resposta Gemini para: {msg}"
-
-# ================= Classe Principal =================
-def start_async_task(coro):
-    threading.Thread(target=lambda: asyncio.run(coro), daemon=True).start()
+threading.Thread(target=_start_loop, daemon=True).start()
 
 
 def run_async(coro):
-    threading.Thread(target=lambda: asyncio.run(coro), daemon=True).start()
+    """Agenda uma corrotina no loop global."""
+    return asyncio.run_coroutine_threadsafe(coro, loop)
 
 
+# =====================================================
+# App principal
+# =====================================================
 class App:
-    def __init__(self, root):
+    def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("📊 Central de Recadastro")
-        self.root.geometry("1200x800")
-        self.root.minsize(1000, 700)
-        self.root.configure(bg="#f5f6fa")
+        self.root.title("Painel de Maturação GTI")
+        self.root.geometry("1200x700")
+        self.root.configure(bg="#222")
+        self.root.option_add("*Font", "Segoe 10")
 
-        # Sidebar
-        self.sidebar = tk.Frame(self.root, bg="white", width=220)
-        self.sidebar.pack(side="left", fill="y")
+        # Cache simples
+        self.cache_agentes = defaultdict(list)
+        self.cache_tipo_rota = {}
 
-        logo = tk.Label(self.sidebar, text="📱 Logotype", font=("Helvetica", 16, "bold"),
-                        bg="white", fg="#3498db")
-        logo.pack(pady=20)
-
-        # Páginas
-        self.pages = {}
-        self.pages["dashboard"] = self.criar_dashboard()
-        self.pages["maturacao"] = self.criar_maturacao()
-        self.pages["instancias"] = self.criar_instancia()
-        self.pages["settings"] = self.criar_settings()
-
-        # Botões sidebar
-        self.criar_botao("📊 Dashboard", "dashboard")
-        self.criar_botao("📋 Maturação", "maturacao")
-        self.criar_botao("Instâncias", "instancias")
-        self.criar_botao("⚙ Configurações", "settings")
-
-        # Rodapé
-        user_frame = tk.Frame(self.sidebar, bg="white")
-        user_frame.pack(side="bottom", pady=20)
-        tk.Label(user_frame, text="👤", font=("Helvetica", 18), bg="white").pack(side="left", padx=5)
-        tk.Label(user_frame, text="User Name", bg="white", fg="#2c3e50",
-                 font=("Helvetica", 12)).pack(side="left")
-
-        # Página inicial
+        self._build_sidebar()
+        self._build_pages()
         self.mostrar_pagina("dashboard")
 
-    # ================= Controle de navegação =================
-    def criar_botao(self, texto, pagina_key):
-        btn = tk.Button(self.sidebar, text=texto, anchor="w", relief="flat",
-                        bg="white", fg="#2c3e50",
-                        font=("Helvetica", 12), padx=20, pady=10,
-                        activebackground="#3498db", activeforeground="white",
-                        command=lambda: self.mostrar_pagina(pagina_key))
-        btn.pack(fill="x", pady=2)
+    # -------------------------------------------------
+    # Sidebar
+    # -------------------------------------------------
+    def _build_sidebar(self):
+        self.sidebar = tk.Frame(self.root, bg="#333", width=180)
+        self.sidebar.pack(side="left", fill="y")
 
-    def mostrar_pagina(self, key):
-        for page in self.pages.values():
-            page.pack_forget()
-        self.pages[key].pack(fill="both", expand=True)
+        botoes = [
+            ("Dashboard", lambda: self.mostrar_pagina("dashboard")),
+            ("Maturação", lambda: self.mostrar_pagina("maturacao")),
+            ("Instâncias", lambda: self.mostrar_pagina("instancias")),
+            ("Config", lambda: self.mostrar_pagina("settings")),
+        ]
+        for txt, cmd in botoes:
+            tk.Button(
+                self.sidebar, text=txt, command=cmd,
+                bg="#444", fg="white", relief="flat",
+                activebackground="#555", activeforeground="white",
+                width=20, pady=8
+            ).pack(pady=5)
 
-    # ================= Página: Dashboard =================
-    def criar_dashboard(self):
-        frame = tk.Frame(self.root, bg="#f5f6fa")
-        header = tk.Frame(frame, bg="#f5f6fa")
-        header.pack(fill="x", pady=10)
-        tk.Label(header, text="Dashboard", font=("Helvetica", 20, "bold"),
-                 bg="#f5f6fa", fg="#2c3e50").pack(side="left")
-        ttk.Entry(header).pack(side="right", padx=10)
+    # -------------------------------------------------
+    # Páginas
+    # -------------------------------------------------
+    def _build_pages(self):
+        self.pages = {}
+        container = tk.Frame(self.root, bg="#222")
+        container.pack(side="right", fill="both", expand=True)
 
-        # Cards
-        top_frame = tk.Frame(frame, bg="#f5f6fa")
-        top_frame.pack(fill="x", pady=10)
-        cards_frame = tk.Frame(top_frame, bg="#f5f6fa")
-        cards_frame.pack(side="left", padx=50)
+        # Dashboard
+        frame_dash = tk.Frame(container, bg="#222")
+        self.pages["dashboard"] = frame_dash
+        self._build_dashboard(frame_dash)
 
-        def criar_card(master, titulo, valor, cor="#3498db"):
-            card = tk.Frame(master, bg="white", width=130, height=50,
-                            highlightthickness=1, highlightbackground="#dcdde1")
-            card.pack(side="left", padx=5, pady=5)
-            card.pack_propagate(False)
-            tk.Label(card, text=titulo, font=("Helvetica", 11),
-                     fg="#7f8c8d", bg="white").pack(anchor="w", padx=10, pady=5)
-            tk.Label(card, text=valor, font=("Helvetica", 16, "bold"),
-                     fg=cor, bg="white").pack(anchor="w", padx=10)
-            return card
+        # Maturação
+        frame_mat = tk.Frame(container, bg="#222")
+        self.pages["maturacao"] = frame_mat
+        self._build_maturacao(frame_mat)
 
-        agentes = carregar_novos_agentes(DB)
-        ag_ativos = [a for a in agentes if a.conectado]
-        ag_inativos = [a for a in agentes if not a.conectado]
+        # Instâncias
+        frame_inst = tk.Frame(container, bg="#222")
+        self.pages["instancias"] = frame_inst
+        self._build_instancias(frame_inst)
 
-        criar_card(cards_frame, "Ativos", f"{len(ag_ativos)}", "#27ae60")
-        criar_card(cards_frame, "Pendentes", f"{len(ag_inativos)}", "#f39c12")
-        criar_card(cards_frame, "Erros", "2", "#c0392b")
+        # Config
+        frame_cfg = tk.Frame(container, bg="#222")
+        self.pages["settings"] = frame_cfg
+        tk.Label(frame_cfg, text="Configurações", fg="white", bg="#222").pack(pady=20)
 
-        # Botão Atualizar Status
-        btns_frame = tk.Frame(top_frame, bg="#f5f6fa")
-        btns_frame.pack(side="right", padx=10)
+    def mostrar_pagina(self, nome):
+        for f in self.pages.values():
+            f.pack_forget()
+        self.pages[nome].pack(fill="both", expand=True)
+
+    # -------------------------------------------------
+    # Dashboard
+    # -------------------------------------------------
+    def _build_dashboard(self, frame):
+        tk.Label(frame, text="Dashboard", fg="white", bg="#222", font=("Segoe", 14)).pack(pady=10)
+
+        self.status_frame = tk.Frame(frame, bg="#222")
+        self.status_frame.pack(fill="both", expand=True)
+
         tk.Button(
-            btns_frame,
-            text="🔄 Atualizar Status",
-            fg="white", bg="#f39c12",
-            font=("Helvetica", 10, "bold"),
-            relief="flat", padx=15, pady=8,
-            command=lambda: threading.Thread(
-                target=lambda: asyncio.run(atualizar_status_parallel(agentes)),
-                daemon=True
-            ).start()
-        ).pack(side="left", padx=5)
+            frame, text="adicionar agentes",
+            command=self._atualizar_status,
+            bg="#444", fg="white"
+        ).pack(pady=10)
+        tk.Button(
+            frame, text="atualizar status",
+            command=self._atualizar_status,
+            bg="#444", fg="white"
+        ).pack(pady=10)
 
-        # Lista de agentes
-        frame_agentes = tk.Frame(frame, bg="white")
-        frame_agentes.pack(fill="both", expand=True, padx=20, pady=10)
-        canvas = tk.Canvas(frame_agentes, bg="white", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(frame_agentes, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas, bg="white")
-        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+    def _atualizar_status(self):
+        async def task():
+            agentes = await carregar_agentes_inter("MATURACAO")
+            await atualizar_status_parallel(agentes)
+            self.cache_agentes["dashboard"] = agentes
+            self.root.after(0, self._refresh_dashboard)
+        run_async(task())
 
-        agentes.sort(key=lambda x: extrair_numero(x.nome))
+
+
+
+
+    def _refresh_dashboard(self):
+        for w in self.status_frame.winfo_children():
+            w.destroy()
+
+        agentes = sorted(
+            self.cache_agentes.get("dashboard", []),
+            key=lambda a: extrair_numero(a.nome)
+        )
+        ativos = sum(a.conectado for a in agentes)
+        inativos = len(agentes) - ativos
+
+        resumo = f"Total: {len(agentes)} | Ativos: {ativos} | Inativos: {inativos}"
+        tk.Label(self.status_frame, text=resumo, fg="white", bg="#222").pack(pady=5)
+
+        # Grade 4 colunas x 2 linhas por grupo de celular
+        grid = tk.Frame(self.status_frame, bg="#222")
+        grid.pack(fill="both", expand=True)
+
         linha = 0
         celular_count = 1
-
         for i in range(0, len(agentes), 8):
-            coluna = 0
+            col = 0
             for c in range(4):
                 if i + c * 2 >= len(agentes):
                     break
-                tk.Label(scrollable_frame, text=f"📱 Celular {celular_count}",
-                         font=("Helvetica", 12, "bold"), bg="#ecf0f1",
-                         anchor="w", padx=10).grid(row=linha, column=coluna, columnspan=2,
-                                                   pady=(20, 10), padx=20, sticky="nsew")
+
+                tk.Label(
+                    grid, text=f"📱 Celular {celular_count}",
+                    font=("Segoe", 12, "bold"),
+                    bg="#333", fg="white"
+                ).grid(row=linha, column=col, columnspan=2, pady=(15, 5), padx=10, sticky="nsew")
+
                 for j in range(2):
                     idx = i + c * 2 + j
-                    if idx < len(agentes):
-                        ag = agentes[idx]
-                        frame_ag = tk.Frame(scrollable_frame, bg="white",
-                                            highlightthickness=1, highlightbackground="#dcdde1",
-                                            padx=3, pady=3)
-                        frame_ag.grid(row=linha + 1, column=coluna + j, padx=10, pady=5, sticky="nsew")
-                        scrollable_frame.columnconfigure(coluna + j, weight=1)
-                        status = tk.Canvas(frame_ag, width=15, height=15, bg="white", highlightthickness=0)
-                        status.create_oval(2, 2, 13, 13, fill=cor_status(ag.conectado))
-                        status.pack(side="top", pady=5)
-                        btn = tk.Button(frame_ag, text=f"{ag.nome}\n{ag.numero or 'Sem número'}",
-                                        bg=cor_status(ag.conectado), fg="white",
-                                        font=("Helvetica", 9, "bold"), relief="raised",
-                                        width=12, height=3, command=lambda a=ag: a.gerar_qr())
-                        btn.pack(expand=True, fill="both")
-                coluna += 2
+                    if idx >= len(agentes):
+                        break
+                    ag = agentes[idx]
+
+                    frame_ag = tk.Frame(grid, bg="#222", padx=5, pady=5)
+                    frame_ag.grid(row=linha + 1, column=col + j, padx=5, pady=5)
+
+                    status = tk.Canvas(frame_ag, width=15, height=15,
+                                       bg="#222", highlightthickness=0)
+                    status.create_oval(2, 2, 13, 13, fill=cor_status(ag.conectado))
+                    status.pack()
+
+                    tk.Button(
+                        frame_ag,
+                        text=f"Desconectar {ag.nome}",
+                        bg=cor_status(ag.conectado),
+                        fg="white", width=10, height=2,
+                        command=lambda a=ag: a.desconectar()
+                    ).pack()
+
+                    tk.Button(
+                        frame_ag,
+                        text=f"{ag.nome}\n{ag.numero or 'Sem número'}",
+                        bg=cor_status(ag.conectado),
+                        fg="white", width=12, height=3,
+                        command=lambda a=ag: a.gerar_qr()
+                    ).pack()
+
+                col += 2
                 celular_count += 1
             linha += 2
 
-        # Log
-        frame_log = tk.Frame(frame, bg="white")
-        frame_log.pack(fill="x", pady=10)
-        self.log_text = tk.Text(frame_log, bg="#2c3e50", fg="white", wrap="word",
-                                relief="flat", height=10)
-        self.log_text.pack(fill="x", side="left", expand=True)
-        scroll_log = ttk.Scrollbar(frame_log, orient="vertical", command=self.log_text.yview)
-        scroll_log.pack(side="right", fill="y")
-        self.log_text.configure(yscrollcommand=scroll_log.set)
+    # -------------------------------------------------
+    # Maturação
+    # -------------------------------------------------
+    def _build_maturacao(self, frame):
+        tk.Label(frame, text="Maturação", fg="white", bg="#222", font=("Segoe", 14)).pack(pady=10)
 
-        return frame
+        tk.Button(frame, text="Iniciar Maturação",
+                  command=lambda: run_async(main()),
+                  bg="#444", fg="white").pack(pady=5)
 
-    # ================= Página: Maturação =================
-    def criar_maturacao(self):
-        frame = tk.Frame(self.root, bg="#f5f6fa")
-        tk.Label(frame, text="📋 Maturação", font=("Helvetica", 20, "bold"),
-                 bg="#f5f6fa", fg="#2c3e50").pack(pady=20)
-        self.log_text = scrolledtext.ScrolledText(frame, height=10, bg="#2c3e50", fg="white", wrap="word")
-        self.log_text.pack(fill="x", padx=10, pady=10)
+        for nome in ["MATURACAO1", "MATURACAO2", "MATURACAO"]:
+            tk.Button(frame, text=f"Carregar {nome}",
+                      command=lambda n=nome: run_async(carregar_agentes_inter(n)),
+                      bg="#444", fg="white").pack(pady=5)
 
-        # Função para verificar pares de agentes conectados
-        async def verificar_pares():
-            try:
-                log(self.log_text, "🔄 Verificando agentes conectados...", "info")
-                agentes = await carregar_agentes_banco_inter(tipo="MATURACAO")
-                agentes_conectados = [a for a in agentes if a.conectado]
-                log(self.log_text, f"Agentes conectados: {len(agentes_conectados)}", "sucesso")
-                pares = [tuple(par) for par in itertools.zip_longest(*[iter(agentes_conectados)] * 2) if
-                         None not in par]
-                log(self.log_text, f"Novos pares detectados: {len(pares)}", "info")
-                return pares
-            except Exception as e:
-                log(self.log_text, f"❌ Erro ao verificar pares: {str(e)}", "erro")
-                return []
+        tk.Button(frame, text="Verificar Pares",
+                  command=self.verificar_pares,
+                  bg="#444", fg="white").pack(pady=5)
 
-        # Função principal de maturação
-        async def executar_maturacao():
-            try:
-                pares = await verificar_pares()
-                if not pares:
-                    log(self.log_text, "⚠️ Nenhum par disponível para maturação.", "alerta")
-                    return
+    def verificar_pares(self):
+        agentes = []
+        for lista in self.cache_agentes.values():
+            agentes.extend(lista)
+        run_async(criar_pares(agentes))
 
-                sem = asyncio.Semaphore(20)  # Limita 20 tarefas simultâneas
-                tarefas = []
+    # -------------------------------------------------
+    # Instâncias
+    # -------------------------------------------------
+    def _build_instancias(self, frame):
+        tk.Label(frame, text="Instâncias", fg="white", bg="#222", font=("Segoe", 14)).pack(pady=10)
+        self.inst_frame = tk.Frame(frame, bg="#222")
+        self.inst_frame.pack(fill="both", expand=True)
 
-                async def conversar_com_limite(a1, a2):
-                    async with sem:
-                        try:
-                            await conversar_async(a1, a2, 100, False, get_ia_response_ollama)
-                            log(self.log_text, f"✅ Conversa concluída: {a1.nome} + {a2.nome}", "sucesso")
-                        except Exception:
-                            await conversar_async(a1, a2, 100, False, get_ia_response_gemini)
-                            log(self.log_text, f"⚠️ Conversa com fallback: {a1.nome} + {a2.nome}", "alerta")
+        for txt in ["MATURACAO1", "MATURACAO2", "MATURACAO"]:
+            tk.Button(frame, text=txt, bg="#444", fg="white",
+                      command=lambda t=txt: self.buscar_agentes(t)).pack(pady=4)
 
-                for par in pares:
-                    tarefas.append(asyncio.create_task(conversar_com_limite(par[0], par[1])))
-
-                log(self.log_text, "▶️ Iniciando conversas...", "info")
-                await asyncio.gather(*tarefas, return_exceptions=True)
-                log(self.log_text, "✅ Maturação finalizada!", "sucesso")
-            except Exception as e:
-                log(self.log_text, f"❌ Erro durante maturação: {str(e)}", "erro")
-
-        # Botões
-        botoes_frame = tk.Frame(frame, bg="#f5f6fa")
-        botoes_frame.pack(pady=10)
-        tk.Button(botoes_frame, text="▶️ Iniciar Maturação", bg="#2980b9", fg="white",
-                  font=("Helvetica", 12, "bold"), relief="flat",
-                  command=lambda: threading.Thread(target=lambda: asyncio.create_task(executar_maturacao())).pack(side="left", padx=5))
-        tk.Button(botoes_frame, text="🔍 Verificar Pares", bg="#f39c12", fg="white",
-                  font=("Helvetica", 12, "bold"), relief="flat",
-                  command=lambda: threading.Thread(target= lambda: asyncio.create_task(verificar_pares())).pack(side="left", padx=5))
-        tk.Button(botoes_frame, text="⏹ Parar Maturação", bg="#e74c3c", fg="white",
-                  font=("Helvetica", 12, "bold"), relief="flat",
-                  command=lambda: log(self.log_text, "⏹ Parada manual ativada!", "alerta")).pack(side="left", padx=5)
-
-        return frame
-
-    # ================= Página: Instâncias =================
-    def criar_instancia(self):
-        frame = tk.Frame(self.root, bg="#f5f6fa")
-        tk.Label(frame, text="⚙ Instâncias", font=("Helvetica", 20, "bold"),
-                 bg="#f5f6fa", fg="#2c3e50").pack(pady=10)
-
-        self.cache_agentes = {}
-        grid_colunas = 8
-
-        # Botões para adicionar agentes
-        botao_frame = tk.Frame(frame, bg="#f5f6fa")
-        botao_frame.pack(fill="x", pady=5)
-        for tipo in ["MATURACAO1", "MATURACAO2", "MATURACAO"]:
-            btn = tk.Button(
-                botao_frame,
-                text=f"➕ {tipo.replace('MATURACAO', 'Maturação')}",
-                bg="#27ae60", fg="white", font=("Helvetica", 11, "bold"),
-                padx=10, pady=5,
-                command=lambda t=tipo: threading.Thread(target=lambda: asyncio.run(buscar_agentes(t)),
-                                                        daemon=True).start()
-            )
-            btn.pack(side="left", padx=5, pady=5, expand=True)
-
-        # Canvas com scroll
-        canvas_frame = tk.Frame(frame, bg="#f5f6fa")
-        canvas_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        canvas = tk.Canvas(canvas_frame, bg="#ecf0f1", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(canvas_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas, bg="#ecf0f1")
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-
-        # Atualiza UI
-        def atualizar_ui(novos_agentes):
-            novos_nomes = {ag.nome for ag in novos_agentes}
-            antigos_nomes = set(self.cache_agentes.keys())
-
-            # Remove antigos
-            for nome in antigos_nomes - novos_nomes:
-                item = self.cache_agentes.pop(nome)
-                item['frame'].destroy()
-
-            # Adiciona/atualiza agentes
-            for i, ag in enumerate(sorted(novos_agentes, key=lambda x: x.nome)):
-                row = i // grid_colunas
-                col = i % grid_colunas
-
-                if ag.nome not in self.cache_agentes:
-                    cell = tk.Frame(scrollable_frame, bg="white", relief="groove", bd=2)
-                    cell.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
-
-                    status_color = "#27ae60" if ag.conectado else "#c0392b"
-                    tk.Label(cell, text=ag.nome, font=("Helvetica", 12, "bold"),
-                             bg="white", fg=status_color).pack(padx=5, pady=5)
-
-                    btn_frame = tk.Frame(cell, bg="white")
-                    btn_frame.pack(pady=5)
-                    tk.Button(btn_frame, text="QR", bg="#3498db", fg="white",
-                              command=lambda a=ag: a.gerar_qr()).pack(side="left", padx=5)
-                    tk.Button(btn_frame, text="Desconectar", bg="#e74c3c", fg="white",
-                              command=lambda a=ag: threading.Thread(target=a.desconectar, daemon=True).start()).pack(
-                        side="left", padx=5)
-
-                    self.cache_agentes[ag.nome] = {'frame': cell, 'ag_obj': ag}
-                else:
-                    self.cache_agentes[ag.nome]['frame'].grid_configure(row=row, column=col)
-
-        # Buscar agentes async
-        async def buscar_agentes(tipo):
+    def buscar_agentes(self, tipo):
+        async def task():
             agentes = await carregar_agentes_inter(tipo)
-            frame.after(0, lambda: atualizar_ui(agentes))
+            rotas = [a.tipo_rota for a in agentes]
+            if rotas != self.cache_tipo_rota.get(tipo):
+                self.cache_tipo_rota[tipo] = rotas
+                self.cache_agentes[tipo] = agentes
+                self.root.after(0, lambda: self._atualizar_instancias(tipo))
+        run_async(task())
 
-        return frame
+    def _atualizar_instancias(self, tipo):
+        for w in self.inst_frame.winfo_children():
+            w.destroy()
+        for ag in self.cache_agentes.get(tipo, []):
+            tk.Label(self.inst_frame,
+                     text=f"{ag.nome} ({ag.tipo_rota})",
+                     fg="white", bg="#222").pack(anchor="w", padx=20)
 
-    # ================= Página: Configurações =================
-    def criar_settings(self):
-        frame = tk.Frame(self.root, bg="#f5f6fa")
-        tk.Label(frame, text="⚙ Configurações", font=("Helvetica", 20, "bold"),
-                 bg="#f5f6fa", fg="#2c3e50").pack(pady=20)
-        return frame
 
-# ================= Main =================
+# =====================================================
+# Execução
+# =====================================================
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
+
+
+    def preload():
+        app._atualizar_status()
+
+    root.after(100, preload)
+
     root.mainloop()

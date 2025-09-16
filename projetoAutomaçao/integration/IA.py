@@ -62,7 +62,8 @@ async def delay_ms_async(min, test_mode=False):
 async def enviar_mensagem_async(agente, numero, mensagem):
     resultado = None
     try:
-        bol, resultado = await agente.enviar_mensagem(numero, mensagem)
+        bol, resultado = await agente.enviar_mensagem_async(numero, mensagem)
+
         return bol, resultado
     except Exception as e:
         print(f"[{agente.nome}] Erro ao enviar mensagem async: {e}")
