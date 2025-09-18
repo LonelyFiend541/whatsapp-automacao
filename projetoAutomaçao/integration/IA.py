@@ -207,24 +207,38 @@ async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False, get_
     print(f"✅ {agente1.nome} enviou {count1} msgs | {agente2.nome} enviou {count2} msgs")
     return True
 
-def tratar_erro_ia(mensagem):
+def tratar_erro_ia(mensagem, tentativas=1, max_tentativas=3):
     mensagem = str(mensagem)
-    mensagens = [{
-        "role": "system",
-        "content": ( "Voce é um programador com 10 anos de experiencia em python"
-        )
-    }]
-    mensagens.append({"role": "user", "content": mensagem})
-
+    mensagens = [
+        {
+            "role": "system",
+            "content": (
+                "Você é um programador especialista em Python, com 10 anos de experiência. "
+                "Sua função é analisar problemas de código, sugerir soluções práticas e eficientes, "
+                "escrever trechos de código claros e comentados, e explicar conceitos de forma objetiva. "
+                "Se não conseguir resolver, devolva uma mensagem curta explicando a limitação."
+            )
+        },
+        {
+            "role": "user",
+            "content": mensagem
+        }
+    ]
     try:
         response = ollama.chat(model="llama3.2:1b", messages=mensagens)
-        return (
-            response.get("message", {}).get("content", "").strip()
-            or "😅 Não consegui pensar em nada agora."
-        )
+        # tenta acessar o conteúdo de forma segura
+        conteudo = response.get("message", {}).get("content") if isinstance(response, dict) else None
+        print(conteudo)
+        return (conteudo or "😅 Não consegui pensar em nada agora.").strip()
+
     except Exception as e:
-        print(f"⚠️ Erro IA: {e}")
-        return tratar_erro_ia(e)
+        print(f"⚠️ Erro IA (tentativa {tentativas}): {e}")
+        if tentativas < max_tentativas:
+            # tenta novamente
+            return tratar_erro_ia(mensagem, tentativas + 1, max_tentativas)
+        else:
+            # se falhar várias vezes, retorna mensagem padrão
+            return "😅 Não consegui processar a mensagem após várias tentativas."
 
 
 import subprocess
@@ -244,6 +258,3 @@ def sinalizar_dispositivo(udid):
     ]
     subprocess.run(comando)
 
-udis = listar_udids()
-for udid in udis:
-    sinalizar_dispositivo(udid)

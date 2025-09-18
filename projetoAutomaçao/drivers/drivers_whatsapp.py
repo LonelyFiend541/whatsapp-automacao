@@ -164,6 +164,7 @@ def rodar_automacao_whatsapp(driver):
         for dado in dados:
             if dado["UDID"] == udid:
                 chip1 = dado.get("Chip 1")
+                print(chip1)
         if not chip1:
             try:
                 numero = whatsapp.pegarNumeroChip1(udid)

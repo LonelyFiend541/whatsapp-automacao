@@ -188,7 +188,7 @@ def carregar_agentes_do_banco(conn_str, max_workers=10):
         SELECT TELEFONE, SENHA
         FROM [NEWWORK].[dbo].[ROTA]
         WHERE SERVICO='MATURACAO' 
-          AND (TELEFONE LIKE 'GTI%' OR TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'WD%')
+          AND (TELEFONE LIKE 'Chip_novo_1' OR TELEFONE LIKE 'Chip_novo_3')
     """
 
     try:

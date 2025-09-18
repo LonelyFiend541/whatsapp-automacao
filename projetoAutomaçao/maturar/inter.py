@@ -130,26 +130,29 @@ class App:
 
         tk.Button(
             frame, text="adicionar agentes",
-            command=self._atualizar_status,
+            command=self.carregar_agentes,
             bg="#444", fg="white"
         ).pack(pady=10)
         tk.Button(
             frame, text="atualizar status",
-            command=self._atualizar_status,
+            command= self._atualizar_status,
             bg="#444", fg="white"
         ).pack(pady=10)
+    def carregar_agentes(self):
+        async def agente_load():
+            agentes = await carregar_agentes_inter("MATURACAO")
+            self.cache_agentes = agentes
+            self.root.after(0, self._refresh_dashboard)
+            return self.cache_agentes
+        run_async(agente_load())
 
     def _atualizar_status(self):
+        agentes = self.cache_agentes.get("dashboard", [])
         async def task():
-            agentes = await carregar_agentes_inter("MATURACAO")
             await atualizar_status_parallel(agentes)
             self.cache_agentes["dashboard"] = agentes
             self.root.after(0, self._refresh_dashboard)
         run_async(task())
-
-
-
-
 
     def _refresh_dashboard(self):
         for w in self.status_frame.winfo_children():
@@ -159,6 +162,7 @@ class App:
             self.cache_agentes.get("dashboard", []),
             key=lambda a: extrair_numero(a.nome)
         )
+
         ativos = sum(a.conectado for a in agentes)
         inativos = len(agentes) - ativos
 
@@ -282,8 +286,8 @@ if __name__ == "__main__":
 
 
     def preload():
-        app._atualizar_status()
+        app.carregar_agentes()
 
-    root.after(100, preload)
+    root.after(1, preload)
 
     root.mainloop()

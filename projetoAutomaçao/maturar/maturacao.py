@@ -2,7 +2,7 @@ import asyncio
 import itertools
 import random
 import keyboard
-from banco.dbo import carregar_agentes_async_do_banco_async
+from banco.dbo import carregar_agentes_async_do_banco_async, carregar_novos_agentes, DB
 from integration.IA import conversar_async, get_ia_response_ollama, get_ia_response_gemini
 from integration.api_GTI import atualizar_status_parallel
 
@@ -60,7 +60,7 @@ async def main():
     turno = 100  # número de turnos
 
     # Carrega agentes do banco
-    agentes = await carregar_agentes()
+    agentes = carregar_novos_agentes(DB)
     agentes_conectados = await verificar_agentes(agentes)
 
     # Cria pares ordenados sequencialmente
@@ -81,7 +81,7 @@ async def main():
             try:
                 await conversar_async(a1, a2, turno, False, get_ia_response_ollama)
             except Exception:
-                await conversar_async(a1, a2, turno, False, get_ia_response_gemini)
+                await conversar_async(a1, a2, turno, False, get_ia_response_ollama)
 
     # Criar tarefas iniciais
     for par in novos_pares:
@@ -107,9 +107,10 @@ async def main():
                     pares_em_execucao.add(par)
 
             if keyboard.is_pressed('q'):
-                print("\n⏹ Parada emergencial detectada! Cancelando todas as conversas...")
+                print("deveria parar mas desabilitei a opcao")  #print("\n⏹ Parada emergencial detectada! Cancelando todas as conversas...")
                 for t in tarefas:
-                    t.cancel()
+                    print("nao vai parar")
+                    #t.cancel()
                 break
         print("Encerrando monitoramento de teclas...")
 

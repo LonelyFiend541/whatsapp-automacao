@@ -1,8 +1,11 @@
+import random
+
+import redis
 import time
 import os
 import json
 import itertools
-from random import random, randrange
+from random import choice, randrange
 import re
 from flask import Flask, request, jsonify, render_template
 from concurrent.futures import ThreadPoolExecutor
@@ -13,6 +16,7 @@ from integration.api_GTI import atualizar_status_parallel
 # -------------------- CONFIGURAÇÃO --------------------
 app = Flask(__name__)
 executor = ThreadPoolExecutor(max_workers=5)
+r = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 HISTORICO_DIR = "historicos"
 os.makedirs(HISTORICO_DIR, exist_ok=True)
@@ -33,16 +37,13 @@ def responde_aleatorio(numero, resposta):
 
 # -------------------- INICIALIZAÇÃO DE AGENTES --------------------
 
-def inicializar_agentes():
+async def inicializar_agentes():
     global agentes_gti, agentes_conectados
     agentes_gti = carregar_agentes_do_banco(DB)
-    atualizar_status_parallel(agentes_gti, max_workers=5)
+    await atualizar_status_parallel(agentes_gti)
     agentes_conectados = [ag for ag in agentes_gti if ag.conectado]
     return agentes_conectados
 
-# Inicializa agentes ao iniciar o app
-
-inicializar_agentes()
 
 # -------------------- HISTÓRICO --------------------
 
@@ -65,42 +66,51 @@ def salvar_historico(chat_id: str, historico: list):
         print(f"⚠️ Erro ao salvar histórico de {chat_id}: {e}")
 
 # -------------------- PROCESSAR MENSAGEM --------------------
-
 def tratar_mensagem(data):
-    chat_id = extrair_chat_id(data)
-    mensagem = extrair_mensagem(data)
-    is_group = data.get("isGroup", False)
+    chat_id = data.get("message", {}).get("chatid", "desconhecido")
+    mensagem = data.get("message", {}).get("text", "")
+    is_group = data.get("message", {}).get("isGroup", False)
+    is_from_me = data.get("message", {}).get("fromMe", False)
 
-    if chat_id == "desconhecido" or not mensagem:
-        return None  # ignora
+    if chat_id == "desconhecido" or not mensagem or is_from_me:
+        return None
 
-    # 1. Carregar histórico
     historico = carregar_historico(chat_id)
 
-    # 2. Gerar resposta
-    resposta = get_ia_response_ollama(mensagem, historico, "Converse de forma casual no WhatsApp")
+    # Obter resposta da IA
+    resposta = get_ia_response_ollama(
+        mensagem,
+        historico,
+        "I want to practice my English and I’d like you to help me with conversation..."
+    )
 
-    # 3. Escolher agente
     agente = None
-    if is_group:
-        agente = responde_aleatorio(chat_id, resposta)
-    else:
-        sender = data.get("message", {}).get("sender", "")
-        match = re.search(r'(\d+)@', sender)
-        numero = match.group(1) if match else None
-        agente = next((ag for ag in agentes_conectados if ag.numero == numero), None)
-
-    # 4. Enviar resposta
-    if agente:
+    if is_group and not is_from_me:
+        # envia mensagem para grupo com um agente aleatório
+        agente = random.choice(agentes_conectados)
         agente.enviar_mensagem(chat_id, resposta)
-        print(f"✏️{agente.numero}: {resposta}📝")
+        print(f"✏️{agente.numero} respondeu no grupo {chat_id}: {resposta}")
 
-        # 5. Atualizar histórico
+    else:
+        # mensagem privada
+        owner = data.get("message", {}).get("owner", "")
+        sender = data.get("message", {}).get("sender", "")
+        match = re.search(r"(\d+)@", sender)
+        numero = match.group(1) if match else None
+        for ag in agentes_conectados:
+            if ag.numero == owner:
+                ag.enviar_mensagem(numero, resposta)
+                agente = ag
+                print(f"✏️ {agente.numero} respondeu para {numero}: {resposta}")
+
+    # salvar histórico
+    if agente:
         historico.append({
             "role": "assistant",
             "content": resposta,
             "group": is_group,
-            "timestamp": int(time.time() * 1000)
+            "timestamp": int(time.time() * 1000),
+            "data": time.strftime("%d/%m/%Y %H:%M:%S", time.localtime())
         })
         salvar_historico(chat_id, historico)
         return resposta
@@ -166,11 +176,46 @@ def extrair_mensagem(data):
         return str(data["mensagem"])
     return ""
 
+def worker_fila():
+    print("[Worker] Iniciando processamento da fila...")
+    while True:
+        item = r.lpop("mensagens_fila")
+        if item:
+            try:
+                data = json.loads(item)
+                msg = data.get("message", {})
+                msg_id = msg.get("messageid")
+                chat_id = msg.get("chatid")
+
+                # Lock Redis atômico
+                lock_key = f"msg_lock:{chat_id}:{msg_id}"
+                if not r.set(lock_key, 1, ex=3600, nx=True):
+                    print(f"[Ignorada] Mensagem já processada: {msg_id}")
+                    continue
+
+                # Processa a mensagem
+                resposta = tratar_mensagem(data)
+                if resposta:
+                    print(f"[Worker] Mensagem processada: {msg_id}")
+
+            except Exception as e:
+                print(f"⚠️ Erro ao processar item da fila: {e}")
+        else:
+            time.sleep(0.05)  # evita 100% CPU quando fila vazia
+
+
 # -------------------- ROTAS --------------------
 @app.route('/', methods=['GET'])
 @app.route("/index.html")
 def index():
     return render_template('index.html')
+
+'''# Inicializa agentes ao iniciar o app
+@app.before_request
+def start_agentes():
+    import threading, asyncio
+    threading.Thread(target=lambda: asyncio.run(inicializar_agentes()), daemon=True).start()'''
+
 
 @app.route('/webhook', methods=['POST'])
 def webhook_receiver():
@@ -184,18 +229,61 @@ def webhook_receiver():
 
     return jsonify({"status": "sucesso"}), 200
 
-@app.route('/webhook/messages/text', methods=['POST'])
+# -------------------- WEBHOOK REFACTORADO --------------------
+'''@app.route('/webhook/messages/text', methods=['POST'])
 def webhook_messages_text():
     try:
         data = request.get_json(force=True)
-        print(f"📩[webhook_messages_text]: {data.get('message', {}).get("sender", "")}: {data.get("message", {}).get("text", "")}📩")
-        tratar_mensagem(data)
+        msg = data.get("message", {})
+        msg_id = msg.get("messageid")
+        is_from_me = msg.get("fromMe", False)
+        chat_id = msg.get("chatid")
+        is_group = msg.get("isGroup", False)
+        print(data)
+
+        if not msg_id or is_from_me:
+            # Ignora mensagens sem ID ou próprias
+            return "", 200
+
+        # Processa a mensagem
+        print(f"📩[webhook_messages_text]: {msg.get('sender','')}: {msg.get('text','')}📩")
+        resposta = tratar_mensagem(data)
+        if not resposta:
+            return "", 200  # nada a fazer
+
+        # Lock Redis atômico apenas para marcar como processada
+        lock_key = f"msg_lock:{chat_id}:{msg_id}"
+        if not r.set(lock_key, 1, ex=3600, nx=True):
+            print(f"[Ignorada] Mensagem já processada: {msg_id}")
+            return "", 200
+
 
     except Exception as e:
         print(f"⚠️ Erro ao processar messages/text: {e}")
         return jsonify({"status": "erro"}), 400
 
-    return jsonify({"status": "sucesso"}), 200
+    return jsonify({"status": "sucesso"}), 200'''
+@app.route('/webhook/messages/text', methods=['POST'])
+def webhook_messages_text():
+    try:
+        data = request.get_json(force=True)
+        msg = data.get("message", {})
+        msg_id = msg.get("messageid")
+        chat_id = msg.get("chatid")
+
+        if not msg_id or not chat_id:
+            return "", 200
+
+        # Adiciona à fila Redis
+        r.rpush("mensagens_fila", json.dumps(data))
+        print(f"[Fila] Mensagem enfileirada: {msg_id}")
+
+    except Exception as e:
+        print(f"⚠️ Erro ao enfileirar mensagem: {e}")
+        return jsonify({"status": "erro"}), 400
+
+    return jsonify({"status": "enfileirada"}), 200
+
 
 @app.route('/webhook/presence', methods=['POST'])
 def webhook_presence():
@@ -264,4 +352,15 @@ def webhook_messages_error():
 
 # -------------------- RODAR APP --------------------
 if __name__ == "__main__":
+    import threading
+    import asyncio
+
+    # Inicializa agentes
+    asyncio.run(inicializar_agentes())
+
+    # Start worker da fila em thread separada
+    threading.Thread(target=worker_fila, daemon=True).start()
+
+    # Roda Flask
     app.run(host="0.0.0.0", port=5000, debug=True)
+

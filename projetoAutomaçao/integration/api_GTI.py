@@ -9,6 +9,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from concurrent.futures import ThreadPoolExecutor
 
+from integration.IA import tratar_erro_ia
+
 BASE_URL = "https://api.gtiapi.workers.dev"
 
 
@@ -57,6 +59,7 @@ class AgenteGTI:
             self.status_data = data
         except Exception as e:
             print(f"[{self.nome}] Erro async ao atualizar status: {e}")
+            print(tratar_erro_ia(e))
             self.conectado = False
 
     # ======================== ENVIAR MENSAGEM ========================
@@ -100,6 +103,7 @@ class AgenteGTI:
             return True, resp.json()
         except httpx.RequestError as e:
             print(f"[{self.nome}] Erro async ao enviar mensagem: {e}")
+            tratar_erro_ia(e)
             return False, None
 
     # ======================== QR CODE ========================
