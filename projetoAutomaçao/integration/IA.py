@@ -1,10 +1,10 @@
 import datetime
 import json
+import subprocess
 import os
 import random
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-
 import google.generativeai as genai
 import keyboard
 from click import prompt
@@ -46,11 +46,10 @@ def salvar_historico(ag1, ag2, historico: list):
         print(tratar_erro_ia(e))
         print(f"⚠️ Erro ao salvar histórico de {ag1.nome} com {ag2.nome}: {e}")
 
-
-
 # ==========================
 # Função delay assíncrono
 # ==========================
+
 async def delay_ms_async(min, test_mode=False):
     min *= 60
     await asyncio.sleep(0.1 if test_mode else min)
@@ -59,6 +58,7 @@ async def delay_ms_async(min, test_mode=False):
 # ==========================
 # Função de envio assíncrono de mensagem
 # ==========================
+
 async def enviar_mensagem_async(agente, numero, mensagem):
     resultado = None
     try:
@@ -72,6 +72,7 @@ async def enviar_mensagem_async(agente, numero, mensagem):
 # ==========================
 # Função para gerar resposta do Gemini
 # ==========================
+
 def get_ia_response_gemini(user_message, historico=None, prompt_extra=""):
     if not user_message:
         return "🤔 Não entendi sua mensagem."
@@ -153,6 +154,7 @@ def get_ia_response_ollama(user_message, historico=None, prompt_extra=""):
 # ==========================
 # Loop de conversa assíncrono
 # ========================
+
 async def conversar_async(agente1, agente2, max_turnos=10, test_mode=False, get_ia_response=get_ia_response_ollama):
     historico = carregar_historico(agente1, agente2)
     print(f"🤖 Iniciando conversa entre {agente1.nome} e {agente2.nome}")
@@ -239,9 +241,6 @@ def tratar_erro_ia(mensagem, tentativas=1, max_tentativas=3):
         else:
             # se falhar várias vezes, retorna mensagem padrão
             return "😅 Não consegui processar a mensagem após várias tentativas."
-
-
-import subprocess
 
 def listar_udids():
     result = subprocess.run(["adb", "devices"], capture_output=True, text=True)

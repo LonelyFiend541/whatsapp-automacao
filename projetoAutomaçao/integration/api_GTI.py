@@ -9,13 +9,13 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from concurrent.futures import ThreadPoolExecutor
 
+from banco.dbo import carregar_agentes_do_banco, DB
 from integration.IA import tratar_erro_ia
 
 BASE_URL = "https://api.gtiapi.workers.dev"
 
-
 class AgenteGTI:
-    def __init__(self, token, nome=None, timeout=10, debug=False):
+    def __init__(self, token, nome=None, timeout=20, debug=False):
         self.token = token
         self.nome = nome or "Agente GTI"
         self.timeout = timeout
@@ -77,8 +77,79 @@ class AgenteGTI:
             "delay": 0
         }
         try:
-            resp = self.session.post(f"{BASE_URL}/send/text", json=payload, timeout=self.timeout)
+            resp = self.session.post(f"{BASE_URL}/send/text", json=payload, timeout=30)
             resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
+            return None
+
+    def verificar_webhook(self):
+        try:
+            resp = self.session.get(f"{BASE_URL}/webhook", timeout=self.timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
+            return None
+
+    def apagar_webhook(self):
+        data = agente.verificar_webhook()
+        id = data[0].get("id")
+        payload = {
+            "enabled": False,
+            "url": 'webhook',
+            "events": [
+                "messages",
+                "messages_update"
+            ],
+            "excludeMessages": [
+                "fromMeYes"
+            ],
+            "addUrlEvents": True,
+            "addUrlTypesMessages": True,
+            "action": "delete",
+            "id": id
+        }
+        try:
+            resp = self.session.post(f"{BASE_URL}/webhook", json=payload, timeout=self.timeout)
+            resp.raise_for_status()
+            print(f"webhook do {agente.nome} apagado")
+            return resp.json()
+        except requests.RequestException as e:
+            print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
+            return None
+
+    def atualizar_webhook(self, webhook):
+        payload = {
+    "enabled": True,
+    "url": webhook,
+    "events": [
+        "messages",
+        "messages_update",
+        "groups",
+        "wasSentByApi",
+        "wasNotSentByApi",
+        "isGroupYes",
+        "IsGroupNo"
+
+
+
+
+
+    ],
+    "excludeMessages": [
+        "fromMeYes"
+
+    ],
+    "addUrlEvents": True,
+    "addUrlTypesMessages": True,
+    "action": "add"
+    }
+        try:
+            resp = self.session.post(f"{BASE_URL}/webhook", json=payload, timeout=self.timeout)
+            resp.raise_for_status()
+            print(f"webhook do {self.nome} atualizado para {webhook}")
             return resp.json()
         except requests.RequestException as e:
             print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
@@ -168,12 +239,10 @@ class AgenteGTI:
     def dados(self):
         print(f"{self.nome} | Número: {self.numero} | Conectado: {self.conectado}")
 
-
 # ======================== FUNÇÕES PARA VÁRIOS AGENTES ========================
 async def atualizar_status_parallel(agentes):
     tasks = [ag.atualizar_status_async() for ag in agentes]
     await asyncio.gather(*tasks, return_exceptions=True)
-
 
 def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=20):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -184,3 +253,18 @@ def enviar_mensagens_parallel(agentes, numero, mensagem, max_workers=20):
                 f.result()
             except Exception as e:
                 print(f"[{ag.nome}] Erro paralelo: {e}")
+
+'''
+agentes = carregar_agentes_do_banco(DB)
+
+for agente in agentes:
+    if agente.nome == 'web_9':
+        wb9 = agente
+        wb9.atualizar_webhook('https://d35053657dd2.ngrok-free.app/webhook')
+        #wb9.apagar_webhook()'''
+
+'''agentes = carregar_agentes_do_banco(DB)
+
+for agente in agentes:
+    agente.apagar_webhook()
+    agente.atualizar_webhook('https://8865d3731f7c.ngrok-free.app/webhook')'''

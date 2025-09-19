@@ -159,7 +159,7 @@ class App:
             w.destroy()
 
         agentes = sorted(
-            self.cache_agentes.get("dashboard", []),
+            self.cache_agentes,
             key=lambda a: extrair_numero(a.nome)
         )
 

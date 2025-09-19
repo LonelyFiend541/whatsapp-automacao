@@ -188,7 +188,7 @@ def carregar_agentes_do_banco(conn_str, max_workers=10):
         SELECT TELEFONE, SENHA
         FROM [NEWWORK].[dbo].[ROTA]
         WHERE SERVICO='MATURACAO' 
-          AND (TELEFONE LIKE 'Chip_novo_1' OR TELEFONE LIKE 'Chip_novo_3')
+          AND  TELEFONE LIKE 'web%'
     """
 
     try:
@@ -224,7 +224,7 @@ def carregar_novos_agentes(conn_str, max_workers=10):
         SELECT TELEFONE, SENHA
         FROM [NEWWORK].[dbo].[ROTA]
         WHERE SERVICO='MATURACAO' 
-          AND (TIPO_ROTA LIKE 'MATURACAO') AND TELEFONE LIKE 'Teste%'
+          AND (TIPO_ROTA LIKE 'MATURACAO') AND TELEFONE LIKE 'web%'
     """
 
     try:
@@ -359,23 +359,23 @@ WHERE SERVICO = 'MATURACAO'
 # asyncio.run(carregar_agentes_do_banco_async())
 
 
-query = "SELECT ID, TELEFONE, TIPO_ROTA FROM [NEWWORK].[dbo].[ROTA] WHERE SERVICO = 'MATURACAO'"  # and TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'GTI%' "
+query = "SELECT ID, TELEFONE, TIPO_ROTA FROM [NEWWORK].[dbo].[ROTA] WHERE (SERVICO = 'MATURACAO' and TIPO_ROTA LIKE 'MATURACAO') and (TELEFONE LIKE 'WB%' OR TELEFONE LIKE 'GTI%') "
 # update_e_confirmar(conn,tabela="[NEWWORK].[dbo].[ROTA]",coluna="TELEFONE",valor='Chip_novo_25', id_col="ID",id_val=2733)
-# linhas = consulta(query)
-# i = 1
+#linhas = consulta(query)
+#i = 1
 '''for linha in linhas:
     if i <= 20:  # ou >= dependendo da lógica
         update_e_confirmar(
             conn,
             tabela="[NEWWORK].[dbo].[ROTA]",
             coluna="TELEFONE",
-            valor=f'Teste_{i}',
+            valor=f'web_{i}',
             id_col="ID",
             id_val=f"{linha[0]}"
         )
-    i += 1'''
-
-# consulta(query)
+    i += 1
+'''
+#consulta(query)
 
 cursor.close()
 conn.close()

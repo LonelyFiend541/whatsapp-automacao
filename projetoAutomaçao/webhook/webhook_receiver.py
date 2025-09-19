@@ -81,7 +81,7 @@ def tratar_mensagem(data):
     resposta = get_ia_response_ollama(
         mensagem,
         historico,
-        "I want to practice my English and I’d like you to help me with conversation..."
+        "mantenha uma cnonversa sobre progragamaçao "
     )
 
     agente = None
@@ -101,7 +101,7 @@ def tratar_mensagem(data):
             if ag.numero == owner:
                 ag.enviar_mensagem(numero, resposta)
                 agente = ag
-                print(f"✏️ {agente.numero} respondeu para {numero}: {resposta}")
+                print(f"✏️ {agente.nome} respondeu para {numero}: {resposta}")
 
     # salvar histórico
     if agente:
@@ -230,39 +230,6 @@ def webhook_receiver():
     return jsonify({"status": "sucesso"}), 200
 
 # -------------------- WEBHOOK REFACTORADO --------------------
-'''@app.route('/webhook/messages/text', methods=['POST'])
-def webhook_messages_text():
-    try:
-        data = request.get_json(force=True)
-        msg = data.get("message", {})
-        msg_id = msg.get("messageid")
-        is_from_me = msg.get("fromMe", False)
-        chat_id = msg.get("chatid")
-        is_group = msg.get("isGroup", False)
-        print(data)
-
-        if not msg_id or is_from_me:
-            # Ignora mensagens sem ID ou próprias
-            return "", 200
-
-        # Processa a mensagem
-        print(f"📩[webhook_messages_text]: {msg.get('sender','')}: {msg.get('text','')}📩")
-        resposta = tratar_mensagem(data)
-        if not resposta:
-            return "", 200  # nada a fazer
-
-        # Lock Redis atômico apenas para marcar como processada
-        lock_key = f"msg_lock:{chat_id}:{msg_id}"
-        if not r.set(lock_key, 1, ex=3600, nx=True):
-            print(f"[Ignorada] Mensagem já processada: {msg_id}")
-            return "", 200
-
-
-    except Exception as e:
-        print(f"⚠️ Erro ao processar messages/text: {e}")
-        return jsonify({"status": "erro"}), 400
-
-    return jsonify({"status": "sucesso"}), 200'''
 @app.route('/webhook/messages/text', methods=['POST'])
 def webhook_messages_text():
     try:
@@ -284,9 +251,17 @@ def webhook_messages_text():
 
     return jsonify({"status": "enfileirada"}), 200
 
-
 @app.route('/webhook/presence', methods=['POST'])
 def webhook_presence():
+    try:
+        data = request.get_json(force=True)
+    except Exception as e:
+        print(f"⚠️ Erro ao processar presence: {e}")
+        return jsonify({"status": "erro"}), 400
+    return jsonify({"status": "sucesso"}), 200
+
+@app.route('/webhook/groups', methods=['POST'])
+def webhook_groups():
     try:
         data = request.get_json(force=True)
     except Exception as e:
@@ -362,5 +337,5 @@ if __name__ == "__main__":
     threading.Thread(target=worker_fila, daemon=True).start()
 
     # Roda Flask
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
 
