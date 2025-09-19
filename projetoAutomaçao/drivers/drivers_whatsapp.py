@@ -161,6 +161,7 @@ def rodar_automacao_whatsapp(driver):
         udid = driver.capabilities["deviceName"]
         print(f"📱 Iniciando automação para: {udid}")
         dados = carregar_recadastro()
+        chip1 = None
         for dado in dados:
             if dado["UDID"] == udid:
                 chip1 = dado.get("Chip 1")
