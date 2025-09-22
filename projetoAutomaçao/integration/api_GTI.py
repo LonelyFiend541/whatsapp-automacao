@@ -71,8 +71,8 @@ class AgenteGTI:
             "number": str(numero),
             "text": str(mensagem),
             "linkPreview": False,
-            "replyid": "",
-            "mentions": str(mentions),
+            "replyid": str(mentions),
+            "mentions": "",
             "readchat": True,
             "delay": 0
         }
@@ -94,65 +94,69 @@ class AgenteGTI:
             return None
 
     def apagar_webhook(self):
-        data = agente.verificar_webhook()
-        id = data[0].get("id")
-        payload = {
-            "enabled": False,
-            "url": 'webhook',
-            "events": [
-                "messages",
-                "messages_update"
-            ],
-            "excludeMessages": [
-                "fromMeYes"
-            ],
-            "addUrlEvents": True,
-            "addUrlTypesMessages": True,
-            "action": "delete",
-            "id": id
-        }
-        try:
-            resp = self.session.post(f"{BASE_URL}/webhook", json=payload, timeout=self.timeout)
-            resp.raise_for_status()
-            print(f"webhook do {agente.nome} apagado")
-            return resp.json()
-        except requests.RequestException as e:
-            print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
+        data = self.verificar_webhook()
+        if data:
+            id = data[0].get("id")
+            payload = {
+                "enabled": False,
+                "url": 'webhook',
+                "events": [
+                    "messages",
+                    "messages_update"
+                ],
+                "excludeMessages": [
+                    "fromMeYes"
+                ],
+                "addUrlEvents": True,
+                "addUrlTypesMessages": True,
+                "action": "delete",
+                "id": id
+            }
+            try:
+                resp = self.session.post(f"{BASE_URL}/webhook", json=payload, timeout=self.timeout)
+                resp.raise_for_status()
+                print(f"webhook do {self.nome} apagado")
+                return resp.json()
+            except requests.RequestException as e:
+                print(f"[{self.nome}] Erro ao atualizar webhook: {e}")
+                return None
+        else:
             return None
-
     def atualizar_webhook(self, webhook):
-        payload = {
-    "enabled": True,
-    "url": webhook,
-    "events": [
-        "messages",
-        "messages_update",
-        "groups",
-        "wasSentByApi",
-        "wasNotSentByApi",
-        "isGroupYes",
-        "IsGroupNo"
-
-
-
-
-
-    ],
-    "excludeMessages": [
-        "fromMeYes"
-
-    ],
-    "addUrlEvents": True,
-    "addUrlTypesMessages": True,
-    "action": "add"
-    }
+        payload ={
+                "enabled": True,
+                "url": webhook,
+                "events": [
+                    "connection",
+                    "history",
+                    "messages",
+                    "messages_update",
+                    "call",
+                    "contacts",
+                    "presence",
+                    "groups",
+                    "labels",
+                    "chats",
+                    "chat_labels",
+                    "blocks",
+                    "leads"
+                ],
+                "excludeMessages": [
+                    "wasSentByApi",
+                    "wasNotSentByApi",
+                    "fromMeYes"
+                ],
+                "addUrlEvents": True,
+                "addUrlTypesMessages": True,
+                "action": "add"
+            }
         try:
             resp = self.session.post(f"{BASE_URL}/webhook", json=payload, timeout=self.timeout)
             resp.raise_for_status()
             print(f"webhook do {self.nome} atualizado para {webhook}")
             return resp.json()
         except requests.RequestException as e:
-            print(f"[{self.nome}] Erro ao enviar mensagem: {e}")
+            print(f"[{self.nome}] Erro ao atualizar webhook: {e}")
             return None
 
     async def enviar_mensagem_async(self, numero, mensagem, mentions=""):
@@ -262,9 +266,9 @@ for agente in agentes:
         wb9 = agente
         wb9.atualizar_webhook('https://d35053657dd2.ngrok-free.app/webhook')
         #wb9.apagar_webhook()'''
+def at_web(DB):
+    agentes = carregar_agentes_do_banco(DB)
+    for agente in agentes:
+        agente.apagar_webhook()
+        agente.atualizar_webhook('https://39a5afff2456.ngrok-free.app/webhook')
 
-'''agentes = carregar_agentes_do_banco(DB)
-
-for agente in agentes:
-    agente.apagar_webhook()
-    agente.atualizar_webhook('https://8865d3731f7c.ngrok-free.app/webhook')'''

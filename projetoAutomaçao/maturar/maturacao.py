@@ -60,7 +60,7 @@ async def main():
     turno = 100  # número de turnos
 
     # Carrega agentes do banco
-    agentes = carregar_novos_agentes(DB)
+    agentes = await carregar_agentes()
     agentes_conectados = await verificar_agentes(agentes)
 
     # Cria pares ordenados sequencialmente

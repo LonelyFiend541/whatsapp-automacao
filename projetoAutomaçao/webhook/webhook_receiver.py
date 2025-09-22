@@ -1,5 +1,5 @@
+import datetime
 import random
-
 import redis
 import time
 import os
@@ -10,8 +10,12 @@ import re
 from flask import Flask, request, jsonify, render_template
 from concurrent.futures import ThreadPoolExecutor
 from banco.dbo import carregar_agentes_do_banco, DB
-from integration.IA import get_ia_response_ollama
+from integration.IA import get_ia_response_ollama, get_ia_response_gemini
 from integration.api_GTI import atualizar_status_parallel
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)   # mostra só erros (404/500). Pode usar CRITICAL para quase nada.
+
 
 # -------------------- CONFIGURAÇÃO --------------------
 app = Flask(__name__)
@@ -71,6 +75,11 @@ def tratar_mensagem(data):
     mensagem = data.get("message", {}).get("text", "")
     is_group = data.get("message", {}).get("isGroup", False)
     is_from_me = data.get("message", {}).get("fromMe", False)
+    owner = data.get("message", {}).get("owner", "")
+    sender = data.get("message", {}).get("sender", "")
+    msg_id = data.get("message", {}).get("messageid", "")
+    match = re.search(r"(\d+)@", sender)
+    numero = match.group(1) if match else None
 
     if chat_id == "desconhecido" or not mensagem or is_from_me:
         return None
@@ -81,27 +90,31 @@ def tratar_mensagem(data):
     resposta = get_ia_response_ollama(
         mensagem,
         historico,
-        "mantenha uma cnonversa sobre progragamaçao "
+        "mantenha uma conversa sobre o dia a dia e assuntos do momento com no maximo 120 caracteres"
     )
 
     agente = None
-    if is_group and not is_from_me:
-        # envia mensagem para grupo com um agente aleatório
-        agente = random.choice(agentes_conectados)
-        agente.enviar_mensagem(chat_id, resposta)
-        print(f"✏️{agente.numero} respondeu no grupo {chat_id}: {resposta}")
 
-    else:
+    if is_group and not is_from_me:
+        chat_name = data.get("message", {}).get("groupName", chat_id)
+        # envia mensagem para grupo com um agente aleatório
+        candidatos = [a for a in agentes_conectados if a.numero != numero]
+        if not candidatos:
+            # só tem o próprio, então usa ele mesmo ou decide o que fazer
+            agente = agentes_conectados[0]
+        else:
+            agente = random.choice(candidatos)
+            agente.enviar_mensagem(chat_id, resposta, msg_id)
+        print(f"✏️{chat_name} enviou: {mensagem} \n 🤖{agente.nome} respondeu no grupo {chat_name}: {resposta} 🤖")
+
+    if not is_group and not is_from_me:
         # mensagem privada
-        owner = data.get("message", {}).get("owner", "")
-        sender = data.get("message", {}).get("sender", "")
-        match = re.search(r"(\d+)@", sender)
-        numero = match.group(1) if match else None
         for ag in agentes_conectados:
+            print(data)
             if ag.numero == owner:
-                ag.enviar_mensagem(numero, resposta)
+                ag.enviar_mensagem(numero, resposta, msg_id)
                 agente = ag
-                print(f"✏️ {agente.nome} respondeu para {numero}: {resposta}")
+                print(f"🤖 {agente.nome} respondeu para {numero}: {resposta} 🤖")
 
     # salvar histórico
     if agente:
@@ -190,7 +203,7 @@ def worker_fila():
                 # Lock Redis atômico
                 lock_key = f"msg_lock:{chat_id}:{msg_id}"
                 if not r.set(lock_key, 1, ex=3600, nx=True):
-                    print(f"[Ignorada] Mensagem já processada: {msg_id}")
+                    #print(f"[Ignorada] Mensagem já processada: {msg_id}")
                     continue
 
                 # Processa a mensagem
@@ -243,7 +256,7 @@ def webhook_messages_text():
 
         # Adiciona à fila Redis
         r.rpush("mensagens_fila", json.dumps(data))
-        print(f"[Fila] Mensagem enfileirada: {msg_id}")
+        #print(f"[Fila] Mensagem enfileirada: {msg_id}")
 
     except Exception as e:
         print(f"⚠️ Erro ao enfileirar mensagem: {e}")

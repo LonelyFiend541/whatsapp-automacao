@@ -292,7 +292,20 @@ async def carregar_agentes_async_do_banco_async():
         SELECT TELEFONE, SENHA
         FROM [NEWWORK].[dbo].[ROTA]
         WHERE SERVICO='MATURACAO' 
-          AND (TIPO_ROTA LIKE 'MATURACAO') AND (TELEFONE LIKE 'Teste%') 
+          AND (TIPO_ROTA = 'MATURACAO') AND (TELEFONE LIKE 'Teste%') 
+    """
+    query2 = """
+        SELECT TELEFONE, SENHA
+        FROM [NEWWORK].[dbo].[ROTA]
+        WHERE SERVICO='MATURACAO' 
+          AND (TIPO_ROTA = 'MATURACAO') AND (TELEFONE LIKE 'web%') 
+    """
+
+    query3 = """
+        SELECT TELEFONE, SENHA
+        FROM [NEWWORK].[dbo].[ROTA]
+        WHERE SERVICO='MATURACAO' 
+          AND (TIPO_ROTA = 'MATURACAO') AND (TELEFONE LIKE 'Chip%') 
     """
     try:
         dsn = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv("SERVER")};DATABASE={os.getenv("DATABASE")};UID={os.getenv("USERNAMEDB")};PWD={os.getenv("PASSWORD")};TrustServerCertificate=yes;'

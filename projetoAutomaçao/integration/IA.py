@@ -142,7 +142,7 @@ def get_ia_response_ollama(user_message, historico=None, prompt_extra=""):
     mensagens.append({"role": "user", "content": user_message})
 
     try:
-        response = ollama.chat(model="llama3.2:1b", messages=mensagens)
+        response = ollama.chat(model="TinyLlama", messages=mensagens)
         return (
             response.get("message", {}).get("content", "").strip()
             or "😅 Não consegui pensar em nada agora."
